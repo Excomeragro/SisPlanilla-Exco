@@ -49,6 +49,9 @@ function normalizarEmpleado(e) {
     salarioHora: num(e.salarioHora),
     tipoPago: e.tipoPago || 'Semanal',
     afpInstitucion: e.afpInstitucion || 'Confía',
+    descontarIsss: e.descontarIsss !== false,
+    descontarAfp: e.descontarAfp !== false,
+    aplicarRenta: !!e.aplicarRenta,
     contactoNombre: (e.contactoNombre || '').trim(),
     contactoTelefono: (e.contactoTelefono || '').trim(),
     contactoParentesco: (e.contactoParentesco || e.parentesco || '').trim(),
@@ -60,7 +63,9 @@ function normalizarPlanilla(p) {
   const emp = p.empleadoSnapshot || {};
   const extraDias = normalizarExtraDias(p.extraDias, p.extraDia || p.diaExtra, p.hExtra ?? p.hExtD);
   const hExtra = totalHorasExtra(extraDias);
-  const calc = p.calc || calcularPago({ ...p, empleado: emp, extraDias, hExtra });
+  const aplicarIsss = p.aplicarIsss !== undefined ? p.aplicarIsss !== false : normalizarEmpleado(emp).descontarIsss;
+  const aplicarAfp = p.aplicarAfp !== undefined ? p.aplicarAfp !== false : normalizarEmpleado(emp).descontarAfp;
+  const calc = p.calc || calcularPago({ ...p, empleado: emp, extraDias, hExtra, aplicarIsss, aplicarAfp });
   return {
     id: p.id || uid(),
     empleadoId: p.empleadoId || emp.id || '',
@@ -78,6 +83,8 @@ function normalizarPlanilla(p) {
     prestamos: num(p.prestamos),
     otrosDescuentos: num(p.otrosDescuentos ?? p.otrosDesc),
     aplicarRenta: !!p.aplicarRenta,
+    aplicarIsss,
+    aplicarAfp,
     calc,
     boletaGenerada: !!p.boletaGenerada
   };
@@ -245,10 +252,13 @@ function calcularPago(d) {
   const asueto = num(d.hAsueto) * salario * 2;
   const otrosIngresos = num(d.otrosIngresos);
   const devengado = ord + extra + septimo + asueto + otrosIngresos;
-  const isss = red(devengado * 0.03);
-  const afp = red(devengado * 0.0725);
+  const aplicarIsss = d.aplicarIsss !== undefined ? !!d.aplicarIsss : d.empleado?.descontarIsss !== false;
+  const aplicarAfp = d.aplicarAfp !== undefined ? !!d.aplicarAfp : d.empleado?.descontarAfp !== false;
+  const aplicarRenta = d.aplicarRenta !== undefined ? !!d.aplicarRenta : !!d.empleado?.aplicarRenta;
+  const isss = aplicarIsss ? red(devengado * 0.03) : 0;
+  const afp = aplicarAfp ? red(devengado * 0.0725) : 0;
   const rentaSugerida = sugerirRenta(devengado);
-  const renta = d.aplicarRenta ? red(rentaSugerida) : 0;
+  const renta = aplicarRenta ? red(rentaSugerida) : 0;
   const prestamos = red(d.prestamos);
   const otrosDescuentos = red(d.otrosDescuentos);
   const descuentos = isss + afp + renta + prestamos + otrosDescuentos;
@@ -326,6 +336,7 @@ function cargarEmpleadoPlanilla() {
   document.getElementById('p-cargo').value = emp?.cargo || '';
   document.getElementById('p-departamento').value = emp?.departamento || '';
   document.getElementById('p-salario-hora').value = emp?.salarioHora || '';
+  if (!planillaEditId) document.getElementById('p-aplicar-renta').checked = !!emp?.aplicarRenta;
   calcularPreviewPlanilla();
 }
 function buscarEmpleadoPlanilla() {
@@ -351,6 +362,8 @@ function datosPlanillaForm() {
     hAsueto: num(document.getElementById('p-h-asueto').value),
     otrosIngresos: num(document.getElementById('p-otros-ingresos').value),
     aplicarRenta: document.getElementById('p-aplicar-renta').checked,
+    aplicarIsss: emp?.descontarIsss !== false,
+    aplicarAfp: emp?.descontarAfp !== false,
     prestamos: num(document.getElementById('p-prestamos').value),
     otrosDescuentos: num(document.getElementById('p-otros-descuentos').value)
   };
@@ -364,7 +377,7 @@ function calcularPreviewPlanilla() {
   document.getElementById('p-prev-devengado').textContent = money(calc.devengado);
   document.getElementById('p-prev-descuentos').textContent = money(calc.descuentos);
   document.getElementById('p-prev-neto').textContent = money(calc.neto);
-  document.getElementById('p-prev-afp-inst').textContent = d.empleado?.afpInstitucion || '-';
+  document.getElementById('p-prev-afp-inst').textContent = d.empleado?.descontarAfp === false ? 'No aplica' : (d.empleado?.afpInstitucion || '-');
   return calc;
 }
 function guardarRegistroPlanilla() {
@@ -390,6 +403,8 @@ function guardarRegistroPlanilla() {
     prestamos: d.prestamos,
     otrosDescuentos: d.otrosDescuentos,
     aplicarRenta: d.aplicarRenta,
+    aplicarIsss: d.aplicarIsss,
+    aplicarAfp: d.aplicarAfp,
     calc,
     boletaGenerada: false
   };
@@ -505,6 +520,9 @@ function leerEmpleadoForm() {
     salarioHora: document.getElementById('e-salario-hora').value,
     tipoPago: document.getElementById('e-tipo-pago').value,
     afpInstitucion: document.getElementById('e-afp-institucion').value,
+    descontarIsss: document.getElementById('e-desc-isss').checked,
+    descontarAfp: document.getElementById('e-desc-afp').checked,
+    aplicarRenta: document.getElementById('e-desc-renta').checked,
     estado: document.getElementById('e-estado').value,
     fechaSalida: document.getElementById('e-fecha-salida').value,
     contactoNombre: document.getElementById('e-contacto-nombre').value,
@@ -542,6 +560,9 @@ function editarEmpleado(id) {
   document.getElementById('e-salario-hora').value = e.salarioHora;
   document.getElementById('e-tipo-pago').value = e.tipoPago;
   document.getElementById('e-afp-institucion').value = e.afpInstitucion;
+  document.getElementById('e-desc-isss').checked = e.descontarIsss !== false;
+  document.getElementById('e-desc-afp').checked = e.descontarAfp !== false;
+  document.getElementById('e-desc-renta').checked = !!e.aplicarRenta;
   document.getElementById('e-estado').value = e.estado;
   document.getElementById('e-fecha-salida').value = e.fechaSalida;
   document.getElementById('e-contacto-nombre').value = e.contactoNombre;
@@ -559,6 +580,9 @@ function limpiarEmpleadoForm(reset = true) {
   document.getElementById('e-afp-institucion').value = 'Confía';
   document.getElementById('e-tipo-pago').value = 'Semanal';
   document.getElementById('e-salario-hora').value = '1.68';
+  document.getElementById('e-desc-isss').checked = true;
+  document.getElementById('e-desc-afp').checked = true;
+  document.getElementById('e-desc-renta').checked = false;
   document.getElementById('empleado-form-title').textContent = 'Registro completo de empleado';
   document.getElementById('empleado-mode').textContent = 'Nuevo';
   document.getElementById('empleado-mode').className = 'badge badge-blue';
@@ -571,6 +595,13 @@ function toggleFechaSalida() {
 function formatearDui(input) {
   const digits = String(input.value || '').replace(/\D/g, '').slice(0, 9);
   input.value = digits.length > 8 ? digits.slice(0, 8) + '-' + digits.slice(8) : digits;
+}
+function descuentosEmpleadoHtml(e) {
+  const items = [];
+  if (e.descontarIsss !== false) items.push('ISSS');
+  if (e.descontarAfp !== false) items.push('AFP');
+  if (e.aplicarRenta) items.push('Renta');
+  return items.length ? `<span class="col-sub">${esc(items.join(' · '))}</span>` : '<span class="badge badge-amber">Sin ley</span>';
 }
 function verHistorialEmpleado(id) {
   showTab('historial');
@@ -891,8 +922,8 @@ function renderEmpleados() {
       note.parentNode.removeChild(note);
     }
   }
-  if (!state.empleados.length) { tbody.innerHTML = '<tr><td colspan="9"><div class="table-empty">No hay empleados registrados.</div></td></tr>'; return; }
-  if (!empleadosFiltrados.length) { tbody.innerHTML = '<tr><td colspan="9"><div class="table-empty">No se encontraron empleados con esa búsqueda.</div></td></tr>'; return; }
+  if (!state.empleados.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="table-empty">No hay empleados registrados.</div></td></tr>'; return; }
+  if (!empleadosFiltrados.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="table-empty">No se encontraron empleados con esa búsqueda.</div></td></tr>'; return; }
   tbody.innerHTML = empleadosFiltrados.map((e, i) => `
     <tr>
       <td>${i + 1}</td>
@@ -902,6 +933,7 @@ function renderEmpleados() {
       <td>${esc(e.cargo)}</td>
       <td>${esc(e.departamento)}</td>
       <td>${money(e.salarioHora)}</td>
+      <td>${descuentosEmpleadoHtml(e)}</td>
       <td>${e.estado === 'activo' ? '<span class="badge badge-green">🟢 Activo</span>' : '<span class="badge badge-red">🔴 Inactivo</span>'}</td>
       <td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
     </tr>`).join('');
