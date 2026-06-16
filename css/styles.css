@@ -308,6 +308,25 @@
   .calc-item strong { display: block; margin-top: 2px; font-size: 18px; font-variant-numeric: tabular-nums; }
   .inline-check { display: flex; align-items: center; gap: 8px; padding-top: 24px; color: var(--text); font-weight: 700; }
   .inline-check input { width: 16px; height: 16px; }
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(90px, 1fr));
+    gap: 8px;
+  }
+  .check-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #F8FAFC;
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+  }
   #receipt-overlay {
     display: none;
     position: fixed;
