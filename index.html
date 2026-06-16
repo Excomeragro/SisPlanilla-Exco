@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SisPlanilla Exco - Control de Empleados y Pagos</title>
+<link rel="icon" type="image/png" href="assets/excomercafe-icon.png">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">
+    <img class="brand-logo" src="assets/excomercafe-icon.png" alt="EXCOMERCAFE">
+    SisPlanilla Exco
+    <span class="topbar-subtitle">Control de Empleados y Pagos</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-pill" id="today-pill">Cargando...</div>
+</div>
+
+<div id="aviso-guardar" style="display:none; background:#FEF3C7; border-bottom:1px solid #D97706; padding:8px 24px; align-items:center; gap:12px; font-size:13px; color:#92400E;">
+  <span><strong>Cambios guardados localmente.</strong> Puedes respaldar la información desde Ajustes.</span>
+  <button onclick="document.getElementById('aviso-guardar').style.display='none'" style="background:transparent;border:none;color:#92400E;cursor:pointer;font-size:16px;margin-left:auto;">x</button>
+</div>
+
+<div class="main-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-title">Resumen</div>
+    <div class="sidebar-stats">
+      <div class="stat-card"><div class="stat-card-label">Activos</div><div class="stat-card-val green" id="stat-activos">0</div></div>
+      <div class="stat-card"><div class="stat-card-label">Inactivos</div><div class="stat-card-val red" id="stat-inactivos">0</div></div>
+      <div class="stat-card"><div class="stat-card-label">Pagos semanales</div><div class="stat-card-val blue" id="stat-pagos">0</div></div>
+      <div class="stat-card"><div class="stat-card-label">Neto semanal</div><div class="stat-card-val green" id="stat-neto-historico">$0.00</div></div>
+    </div>
+
+    <div class="sidebar-title">Módulos</div>
+    <button class="sidebar-btn active" data-tab="dashboard" onclick="showTab('dashboard')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10zM13 21h8V11h-8v10zM13 3v6h8V3h-8zM3 21h8v-6H3v6z"></path></svg>
+      Dashboard
+    </button>
+    <button class="sidebar-btn" data-tab="planilla" onclick="showTab('planilla')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4zM8 2v4M16 2v4M4 10h16"></path></svg>
+      Planilla semanal
+    </button>
+    <button class="sidebar-btn" data-tab="boletas" onclick="showTab('boletas')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 2h10l4 4v16H7zM17 2v5h5M9 13h8M9 17h8M9 9h3"></path></svg>
+      Crear boletas
+    </button>
+    <button class="sidebar-btn" data-tab="empleados" onclick="showTab('empleados')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M22 21v-2a4 4 0 00-3-3.87"></path></svg>
+      Lista de empleados
+    </button>
+    <button class="sidebar-btn" data-tab="historial" onclick="showTab('historial')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 3 3 5-7"></path></svg>
+      Historial laboral
+    </button>
+    <button class="sidebar-btn" data-tab="ajustes" onclick="showTab('ajustes')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15.5A3.5 3.5 0 1112 8a3.5 3.5 0 010 7.5z"></path><path d="M19.4 15a1.7 1.7 0 00.34 1.88l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 .6l-.08.08a2 2 0 01-3.84-.8v-.08A1.7 1.7 0 009 17.6a1.7 1.7 0 00-1.88-.34l-.06.03a2 2 0 01-2.73-2.73l.03-.06A1.7 1.7 0 004.6 12a1.7 1.7 0 00-.6-1l-.08-.08a2 2 0 01.8-3.84h.08A1.7 1.7 0 006.4 6a1.7 1.7 0 00.34-1.88l-.03-.06a2 2 0 012.73-2.73l.06.03A1.7 1.7 0 0012 4.6a1.7 1.7 0 001-.6l.08-.08a2 2 0 013.84.8v.08A1.7 1.7 0 0017.6 7a1.7 1.7 0 001.88.34l.06-.03a2 2 0 012.73 2.73l-.03.06A1.7 1.7 0 0019.4 15z"></path></svg>
+      Ajustes
+    </button>
+  </aside>
+
+  <main class="content">
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div><h1>Dashboard principal</h1><p>Accesos rápidos al control de planillas, empleados e historial.</p></div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="dash-card" onclick="showTab('planilla')"><div class="dash-icon">📋</div><h2>Planilla semanal</h2><p>Genera planillas de lunes a domingo, con horas ordinarias, extras por día, asuetos y descuentos.</p></div>
+        <div class="dash-card" onclick="showTab('empleados')"><div class="dash-icon">👥</div><h2>Lista de empleados</h2><p>Registra información personal, laboral, contacto de emergencia y estado activo o inactivo.</p></div>
+        <div class="dash-card" onclick="showTab('historial')"><div class="dash-icon">📊</div><h2>Historial / Tiempo laboral</h2><p>Consulta pagos generados y tiempo laborado desde la fecha de ingreso.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Vista rápida</h2></div>
+        <div class="card-body">
+          <div class="kpi-grid">
+            <div class="kpi"><span>Empleados activos</span><strong id="dash-activos">0</strong></div>
+            <div class="kpi"><span>Empleados inactivos</span><strong id="dash-inactivos">0</strong></div>
+            <div class="kpi"><span>Planillas actuales</span><strong id="dash-planillas">0</strong></div>
+            <div class="kpi"><span>Boletas generadas</span><strong id="dash-boletas">0</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-planilla">
+      <div class="page-head">
+        <div><h1>Planilla semanal</h1><p>La semana inicia lunes y finaliza domingo. Solo aparecen empleados activos.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Nuevo registro semanal</h2><span class="badge badge-blue" id="planilla-mode">Nuevo</span></div>
+        <div class="card-body">
+          <form id="planilla-form" onsubmit="return false;">
+            <div class="form-grid">
+              <div class="form-divider">Semana</div>
+              <div class="form-group"><label>Fecha inicio (lunes)</label><input type="date" id="p-fecha-inicio" onchange="ajustarSemanaDesdeInicio()"></div>
+              <div class="form-group"><label>Fecha fin (domingo)</label><input type="date" id="p-fecha-fin" readonly></div>
+              <div class="form-group span2"><label>Empleado activo *</label><input type="search" id="p-empleado-buscar" list="p-empleados-lista" placeholder="Escribe apellido o nombre" autocomplete="off" oninput="buscarEmpleadoPlanilla()" onchange="buscarEmpleadoPlanilla()"><input type="hidden" id="p-empleado"><datalist id="p-empleados-lista"></datalist></div>
+              <div class="form-group"><label>DUI</label><input type="text" id="p-dui" readonly></div>
+              <div class="form-group"><label>Cargo</label><input type="text" id="p-cargo" readonly></div>
+              <div class="form-group"><label>Departamento / area</label><input type="text" id="p-departamento" readonly></div>
+              <div class="form-group"><label>Salario por hora</label><input type="number" id="p-salario-hora" readonly></div>
+              <div class="form-divider">Ingresos</div>
+              <div class="form-group"><label>Horas ordinarias</label><input type="number" id="p-h-ordinarias" step="0.5" min="0" value="44" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group full"><label>Horas extra por día</label><div class="extra-days">
+                <label>Lunes<input class="zero-ref" type="number" id="p-extra-lunes" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Martes<input class="zero-ref" type="number" id="p-extra-martes" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Miércoles<input class="zero-ref" type="number" id="p-extra-miercoles" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Jueves<input class="zero-ref" type="number" id="p-extra-jueves" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Viernes<input class="zero-ref" type="number" id="p-extra-viernes" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Sábado<input class="zero-ref" type="number" id="p-extra-sabado" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Domingo<input class="zero-ref" type="number" id="p-extra-domingo" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+              </div></div>
+              <div class="form-group"><label>Séptimo (horas)</label><input type="number" id="p-h-septimo" step="0.5" min="0" value="12" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Asuetos (horas)</label><input class="zero-ref" type="number" id="p-h-asueto" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Otros ingresos ($)</label><input class="zero-ref" type="number" id="p-otros-ingresos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-divider">Deducciones</div>
+              <div class="form-group"><label>ISSS automático 3%</label><input type="text" id="p-isss" readonly></div>
+              <div class="form-group"><label>AFP automático 7.25%</label><input type="text" id="p-afp" readonly></div>
+              <div class="form-group"><label>Renta sugerida</label><input type="text" id="p-renta-sugerida" readonly></div>
+              <label class="inline-check"><input type="checkbox" id="p-aplicar-renta" onchange="calcularPreviewPlanilla()"> Aplicar renta</label>
+              <div class="form-group"><label>Préstamos ($)</label><input class="zero-ref" type="number" id="p-prestamos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Otros descuentos ($)</label><input class="zero-ref" type="number" id="p-otros-descuentos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+            </div>
+            <div class="calc-preview">
+              <div class="calc-item"><span>Total devengado</span><strong id="p-prev-devengado">$0.00</strong></div>
+              <div class="calc-item"><span>Total descuentos</span><strong id="p-prev-descuentos">$0.00</strong></div>
+              <div class="calc-item"><span>Neto a recibir</span><strong id="p-prev-neto">$0.00</strong></div>
+              <div class="calc-item"><span>AFP</span><strong id="p-prev-afp-inst">-</strong></div>
+            </div>
+            <div class="btn-row"><button class="btn btn-primary" onclick="guardarRegistroPlanilla()">Agregar a planilla</button><button class="btn btn-ghost" onclick="limpiarPlanillaForm()">Limpiar</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Planilla actual</h2><span class="badge badge-green" id="planilla-count">0 registros</span></div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-empleados">
+      <div class="page-head"><div><h1>Lista de empleados</h1><p>Los empleados inactivos se conservan en archivo e historial, pero no aparecen para planillas ni boletas.</p></div></div>
+      <div class="card">
+        <div class="card-header"><h2 id="empleado-form-title">Registro completo de empleado</h2><span class="badge badge-blue" id="empleado-mode">Nuevo</span></div>
+        <div class="card-body">
+          <form id="empleado-form" onsubmit="return false;">
+            <div class="form-grid">
+              <div class="form-divider">Información personal</div>
+              <div class="form-group span2"><label>Nombre completo *</label><input type="text" id="e-nombre"></div>
+              <div class="form-group"><label>DUI (si aplica)</label><input type="text" id="e-dui" placeholder="00000000-0" maxlength="10" oninput="formatearDui(this)"></div>
+              <div class="form-group"><label>Teléfono</label><input type="text" id="e-telefono"></div>
+              <div class="form-group full"><label>Dirección</label><textarea id="e-direccion"></textarea></div>
+              <div class="form-group"><label>Fecha de ingreso *</label><input type="date" id="e-fecha-ingreso"></div>
+              <div class="form-divider">Información laboral</div>
+              <div class="form-group"><label>Cargo *</label><select id="e-cargo"><option value="">Seleccionar</option><option>Operario</option><option>Empacador</option><option>Descarga</option><option>Mantenimiento</option></select></div>
+              <div class="form-group"><label>Departamento / area *</label><select id="e-departamento"><option value="">Seleccionar</option><option>Empaque</option><option>Carga y descarga</option><option>Trabajos varios</option><option>Otros</option></select></div>
+              <div class="form-group"><label>Salario por hora *</label><input type="number" id="e-salario-hora" step="0.01" min="0" value="1.68"></div>
+              <div class="form-group"><label>Tipo de pago</label><select id="e-tipo-pago"><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Por obra</option></select></div>
+              <div class="form-group"><label>AFP</label><select id="e-afp-institucion"><option value="Confía">Confía</option><option value="Crecer">Crecer</option></select></div>
+              <div class="form-group"><label>Estado</label><select id="e-estado" onchange="toggleFechaSalida()"><option value="activo">🟢 Activo</option><option value="inactivo">🔴 Inactivo</option></select></div>
+              <div class="form-group"><label>Fecha de salida</label><input type="date" id="e-fecha-salida"></div>
+              <div class="form-divider">Contacto de emergencia</div>
+              <div class="form-group"><label>Nombre del contacto</label><input type="text" id="e-contacto-nombre"></div>
+              <div class="form-group"><label>Teléfono del contacto</label><input type="text" id="e-contacto-telefono"></div>
+              <div class="form-group"><label>Parentesco</label><input type="text" id="e-contacto-parentesco"></div>
+            </div>
+            <div class="btn-row"><button class="btn btn-primary" onclick="guardarEmpleado()">Guardar empleado</button><button class="btn btn-ghost" onclick="limpiarEmpleadoForm()">Cancelar / Limpiar</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Archivo de empleados</h2><span class="badge badge-blue" id="empleados-count">0 empleados</span></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group span2"><label>Buscar por nombre o DUI</label><input type="search" id="empleado-buscar" placeholder="Ej: Alfaro, Jorge o 00000000-0" oninput="renderEmpleados()"></div>
+            <label class="inline-check"><input type="checkbox" id="empleados-contraido" onchange="renderEmpleados()"> Contraer lista</label>
+          </div>
+        </div>
+        <div class="table-wrap" id="empleados-lista-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Contacto</th><th>Ingreso</th><th>Cargo</th><th>Departamento</th><th>Sal/Hora</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-historial">
+      <div class="page-head"><div><h1>Historial del empleado</h1><p>Consulta tiempo laborado y pagos históricos desde el primer pago generado.</p></div></div>
+      <div class="card">
+        <div class="card-header"><h2>Empleado</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group span2"><label>Seleccionar empleado</label><select id="h-empleado" onchange="renderHistorial()"></select></div>
+            <div class="form-group"><label>Tiempo laborado</label><input type="text" id="h-tiempo" readonly></div>
+            <div class="form-group"><label>Estado</label><input type="text" id="h-estado" readonly></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Historial de pagos</h2><button class="btn btn-success btn-sm" onclick="imprimirHistorialSeleccionado()">Imprimir seleccionados</button><span class="badge badge-green" id="historial-count">0 pagos</span></div>
+        <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="historial-select-all" onchange="toggleHistorialSeleccionado(this.checked)"></th><th>Fecha</th><th>Semana pagada</th><th>Devengado</th><th>ISSS</th><th>AFP</th><th>Renta</th><th>Otros desc.</th><th>Neto</th><th>Acciones</th></tr></thead><tbody id="historial-tbody"></tbody><tfoot id="historial-tfoot"></tfoot></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-boletas">
+      <div class="page-head"><div><h1>Crear boletas</h1><p>Solo empleados activos. Al generar una boleta se guarda automáticamente en el historial.</p></div></div>
+      <div class="card">
+        <div class="card-header"><h2>Boleta desde planilla</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group span2"><label>Empleado activo</label><select id="b-empleado" onchange="renderBoletasDisponibles()"></select></div>
+            <div class="form-group span2"><label>Planilla pendiente / registrada</label><select id="b-planilla"></select></div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="generarBoletaSeleccionada()">Ver boleta</button><button class="btn btn-success" onclick="imprimirBoletaSeleccionada()">Imprimir boleta</button><button class="btn btn-ghost" onclick="renderBoletasGeneradas()">Actualizar lista</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Boletas generadas</h2><button class="btn btn-success btn-sm" onclick="imprimirBoletasSeleccionadas()">Imprimir seleccionadas</button><span class="badge badge-green" id="boletas-count">0 boletas</span></div>
+        <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="boletas-select-all" onchange="toggleBoletasSeleccionadas(this.checked)"></th><th>Fecha</th><th>Empleado</th><th>Período</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Acciones</th></tr></thead><tbody id="boletas-tbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-ajustes">
+      <div class="page-head"><div><h1>Ajustes</h1><p>Respalda o recupera la información del sistema cuando lo necesites.</p></div></div>
+      <div class="card">
+        <div class="card-header"><h2>Respaldo de datos</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group span2">
+              <label>Exportar datos</label>
+              <button class="btn btn-primary" onclick="exportarJSON()">Exportar JSON</button>
+            </div>
+            <div class="form-group span2">
+              <label>Importar datos</label>
+              <button class="btn btn-ghost" onclick="importarJSON()">Importar JSON</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="receipt-overlay">
+  <div class="receipt-box">
+    <div class="receipt-pages" id="receipt-pages"></div>
+    <div class="receipt-header"><div class="receipt-company">EXCOMERCAFE SA DE CV</div><div class="receipt-subtitle">COMPROBANTE DE PAGO</div></div>
+    <div class="receipt-body">
+      <div class="receipt-topline" id="rec-topline"></div>
+      <div class="receipt-frame">
+        <div class="receipt-employee-row" id="rec-meta"></div>
+        <div class="receipt-columns">
+          <div>
+            <div class="paper-section-title">INGRESOS:</div>
+            <div id="rec-ingresos"></div>
+            <div class="paper-total-row"><span>Sueldo Devengado:</span><strong id="rec-devengado"></strong></div>
+          </div>
+          <div>
+            <div class="paper-section-title">DEDUCCIONES DE LEY:</div>
+            <div id="rec-deducciones"></div>
+            <div class="paper-section-title" style="margin-top:22px;">OTROS DESCUENTOS:</div>
+            <div id="rec-otros-descuentos"></div>
+            <div class="paper-total-row"><span>TOTAL DESCUENTOS</span><strong id="rec-descuentos"></strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="receipt-signoff"><div style="text-align:right;">Recibí conforme&nbsp;&nbsp;&nbsp; <strong id="rec-neto"></strong></div><div class="receipt-sign-line"></div></div>
+    </div>
+    <div class="receipt-footer" id="rec-footer">Documento generado por SisPlanilla Exco</div>
+    <div class="receipt-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarRecibo()">Cerrar</button><button class="btn btn-primary btn-sm" onclick="imprimirRecibo()">Imprimir</button></div>
+  </div>
+</div>
+<div id="toast">Listo</div>
+
+<script src="js/initial-data.js"></script>
+<script src="js/initial-data.local.js"></script>
+<script src="js/supabase-adapter.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>

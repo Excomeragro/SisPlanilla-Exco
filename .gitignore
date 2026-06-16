@@ -1,0 +1,9 @@
+js/supabase-config.js
+js/initial-data.local.js
+DUI/
+.env
+.env.*
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
