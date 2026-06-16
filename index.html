@@ -115,8 +115,8 @@
               <div class="form-group"><label>Asuetos (horas)</label><input class="zero-ref" type="number" id="p-h-asueto" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Otros ingresos ($)</label><input class="zero-ref" type="number" id="p-otros-ingresos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-divider">Deducciones</div>
-              <div class="form-group"><label>ISSS automático 3%</label><input type="text" id="p-isss" readonly></div>
-              <div class="form-group"><label>AFP automático 7.25%</label><input type="text" id="p-afp" readonly></div>
+              <div class="form-group"><label>ISSS según empleado 3%</label><input type="text" id="p-isss" readonly></div>
+              <div class="form-group"><label>AFP según empleado 7.25%</label><input type="text" id="p-afp" readonly></div>
               <div class="form-group"><label>Renta sugerida</label><input type="text" id="p-renta-sugerida" readonly></div>
               <label class="inline-check"><input type="checkbox" id="p-aplicar-renta" onchange="calcularPreviewPlanilla()"> Aplicar renta</label>
               <div class="form-group"><label>Préstamos ($)</label><input class="zero-ref" type="number" id="p-prestamos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
@@ -157,6 +157,7 @@
               <div class="form-group"><label>Salario por hora *</label><input type="number" id="e-salario-hora" step="0.01" min="0" value="1.68"></div>
               <div class="form-group"><label>Tipo de pago</label><select id="e-tipo-pago"><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Por obra</option></select></div>
               <div class="form-group"><label>AFP</label><select id="e-afp-institucion"><option value="Confía">Confía</option><option value="Crecer">Crecer</option></select></div>
+              <div class="form-group span2"><label>Descuentos del empleado</label><div class="check-grid"><label><input type="checkbox" id="e-desc-isss" checked> ISSS</label><label><input type="checkbox" id="e-desc-afp" checked> AFP</label><label><input type="checkbox" id="e-desc-renta"> Renta</label></div></div>
               <div class="form-group"><label>Estado</label><select id="e-estado" onchange="toggleFechaSalida()"><option value="activo">🟢 Activo</option><option value="inactivo">🔴 Inactivo</option></select></div>
               <div class="form-group"><label>Fecha de salida</label><input type="date" id="e-fecha-salida"></div>
               <div class="form-divider">Contacto de emergencia</div>
@@ -176,7 +177,7 @@
             <label class="inline-check"><input type="checkbox" id="empleados-contraido" onchange="renderEmpleados()"> Contraer lista</label>
           </div>
         </div>
-        <div class="table-wrap" id="empleados-lista-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Contacto</th><th>Ingreso</th><th>Cargo</th><th>Departamento</th><th>Sal/Hora</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
+        <div class="table-wrap" id="empleados-lista-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Contacto</th><th>Ingreso</th><th>Cargo</th><th>Departamento</th><th>Sal/Hora</th><th>Desc.</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
       </div>
     </section>
 
