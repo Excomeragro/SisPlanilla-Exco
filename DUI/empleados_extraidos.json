@@ -1,0 +1,25 @@
+{
+  "empleados": [
+    {"nombre":"ESCALANTE GUERRERO, JOSE MARCIAL","dui":"01074879-9","direccion":"SANTA ANA, SANTA ANA CENTRO, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"CRUZ VALLE, MARIO ANTONIO","dui":"00202954-7","direccion":"COMUNIDAD LA REALIDAD EL PPAL LOTE #536, CUTUMAY CAMONES, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MORALES GUZMAN, GUSTAVO ALEXANDER","dui":"03718356-2","direccion":"COL LAS GRANADILLAS LOTE #206 CTON ZACARIAS, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"FLORES CACERES, HECTOR DANIEL","dui":"03752090-0","direccion":"COL JARDINES DE SANTA ANITA POLG 17 PJE SONSONATE CASA #13, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"PALACIOS AREVALO, JUAN ALBERTO","dui":"04513508-6","direccion":"COL LA REALIDAD CL LAS HUERTAS LOTE #19, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"PEREZ BRENES, JULIO ARMANDO","dui":"02912299-2","direccion":"COL EL MILAGRO POL 8 CALLE A METAPAN #5, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MORENO MEDINA, MELVIN DE JESUS","dui":"00152014-2","direccion":"COL LA DALIA PJE EL MILAGRO LOTE 26, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MENDOZA, ISMAEL DE JESUS","dui":"03144777-2","direccion":"LOT JARDINES DE SANTA ANITA PJE SONSONATE, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"CEA SALGUERO, REIMUNDO","dui":"01067113-8","direccion":"LOT TERESITA #5 CANTARRANA, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"ULLOA MENDEZ, JOSE ANGEL","dui":"06238389-6","direccion":"COL LAS GRANADILLAS CASA #3, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MUSON VALENCIA, SAMUEL HUMBERTO","dui":"03198273-0","direccion":"COL OLIMPICA CALLE CENTRAL POL B CASA 29 EL PORTEZUELO, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MARTINEZ MARTINEZ, TOMAS ALEJANDRO","dui":"06358896-0","direccion":"SANTA ANA, SANTA ANA CENTRO, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"PACHECO CEA, JOSE ERNESTO","dui":"00766712-0","direccion":"COL LA REALIDAD SECTOR 6 CASA 40, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"GUDIEL, ROBERTO ERNESTO","dui":"02672949-4","direccion":"COL LA ESMERALDA FINAL 6A AV NTE APTO RAMOS, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"GONZALEZ ALARCON, JERSON YONATAN","dui":"04263159-6","direccion":"COL LA ESMERALDA FINAL 6 AV NTE CASA #2, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"GONZALEZ MARTINEZ, JOSE RICARDO","dui":"04646117-1","direccion":"COL SANTA EDUVIGES AV LOS AMATES, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"RAMOS ESCOBAR, JOSUE ALFONSO","dui":"06329210-3","direccion":"CHALCHUAPA, SANTA ANA OESTE, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MARTINEZ DE OSORIO, JOSELINE DEL ROCIO","dui":"04667333-8","direccion":"COL LA DALIA CL DIAGONAL BLOCK \"A\" N 6, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"BERRIOS PINTO, MARIA MAGDALENA","dui":"02626090-3","direccion":"SANTA ANA, SANTA ANA CENTRO, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"MARTINEZ, JOSE LUIS","dui":"00705662-0","direccion":"COL EL BUFALO FINAL 5 AV NTE MESON LA ROCA, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"},
+    {"nombre":"FLORES ROMERO, EMILIA LIZETH","dui":"02391114-9","direccion":"SANTA ANA, SANTA ANA","cargo":"Operario","departamento":"Trabajos varios","salarioHora":1.68,"estado":"activo"}
+  ]
+}
