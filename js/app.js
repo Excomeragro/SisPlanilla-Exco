@@ -290,11 +290,7 @@ function pagoProporcionalSalida(emp) {
   };
 }
 function sugerirRenta(devengado) {
-  const semanal = num(devengado);
-  if (semanal <= 118) return 0;
-  if (semanal <= 223) return (semanal - 118) * 0.10;
-  if (semanal <= 510) return 10.5 + (semanal - 223) * 0.20;
-  return 67.9 + (semanal - 510) * 0.30;
+  return red(num(devengado) * 0.10);
 }
 function calcularPago(d) {
   const salario = num(d.empleado?.salarioHora ?? d.salarioHora);
