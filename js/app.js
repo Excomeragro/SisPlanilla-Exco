@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'sisplanilla_sv_control_v2';
 const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
+const EMPLOYEE_START_DATE = '2026-01-01';
+const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
   { key: 'lunes', label: 'Lunes' },
@@ -124,6 +126,20 @@ function fusionarEmpleados(base, extra) {
   });
   return base;
 }
+function migrarFechaIngresoEmpleados(data) {
+  try {
+    if (localStorage.getItem(EMPLOYEE_START_DATE_MIGRATION_KEY) === EMPLOYEE_START_DATE) return data;
+  } catch(e) {}
+  data.empleados.forEach(emp => { emp.fechaIngreso = EMPLOYEE_START_DATE; });
+  data.planillas.forEach(planilla => {
+    if (planilla.empleadoSnapshot) planilla.empleadoSnapshot.fechaIngreso = EMPLOYEE_START_DATE;
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(EMPLOYEE_START_DATE_MIGRATION_KEY, EMPLOYEE_START_DATE);
+  } catch(e) {}
+  return data;
+}
 function cargarEstado() {
   const embebido = normalizarEstado(typeof _datosIniciales !== 'undefined' ? _datosIniciales : {});
   let guardado = estadoVacio();
@@ -137,14 +153,14 @@ function cargarEstado() {
         localStorage.setItem(INITIAL_DATA_KEY, INITIAL_DATA_VERSION);
       } catch(e) {}
     }
-    return guardado;
+    return migrarFechaIngresoEmpleados(guardado);
   }
   if (estadoTieneDatos(embebido)) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(embebido));
       localStorage.setItem(INITIAL_DATA_KEY, INITIAL_DATA_VERSION);
     } catch(e) {}
-    return embebido;
+    return migrarFechaIngresoEmpleados(embebido);
   }
   return estadoVacio();
 }

@@ -26,6 +26,10 @@ Abre `index.html` en el navegador.
 
 Por ahora los datos se guardan en el navegador con `localStorage`. Para respaldarlos, usa la pestaña `Ajustes` y exporta JSON.
 
+## Subir actualizaciones a GitHub
+
+Abre `SUBIR_A_GITHUB.bat`. El archivo guarda los cambios y los sube a la rama `main` del repositorio de SisPlanilla Exco. La primera vez, GitHub puede solicitar iniciar sesión.
+
 ## Preparación para Supabase
 
 1. Crear un proyecto en Supabase.
