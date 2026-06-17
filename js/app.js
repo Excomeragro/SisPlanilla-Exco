@@ -174,8 +174,8 @@ function cargarEstado() {
 function guardarEstado(mostrarAviso = true) {
   sincronizarBoletasConPlanillas();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
-  if (mostrarAviso) document.getElementById('aviso-guardar').style.display = 'flex';
   renderTodo();
+  if (mostrarAviso) toast('Guardado');
 }
 function generarHtmlConDatos(datos) {
   const json = JSON.stringify(datos).replace(/</g, '\\u003c');
@@ -190,7 +190,6 @@ function guardarComoHTML() {
   a.download = 'sisplanilla_' + todayIso() + '.html';
   a.click();
   URL.revokeObjectURL(url);
-  document.getElementById('aviso-guardar').style.display = 'none';
   toast('HTML guardado con toda la información.');
 }
 function exportarJSON() {
@@ -487,7 +486,6 @@ function guardarRegistroPlanilla() {
   planillaEditId = null;
   limpiarPlanillaForm(false);
   guardarEstado();
-  toast('Registro agregado y boleta creada automáticamente.');
 }
 function editarPlanilla(id) {
   const p = state.planillas.find(x => x.id === id);
@@ -630,7 +628,6 @@ function guardarEmpleado() {
   empleadoEditId = null;
   limpiarEmpleadoForm();
   guardarEstado();
-  toast('Empleado guardado.');
 }
 function editarEmpleado(id) {
   const e = empleadoPorId(id);
