@@ -20,7 +20,12 @@ let planillaEditId = null;
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 function money(v) { return '$' + num(v).toFixed(2); }
-function iso(d) { return d.toISOString().slice(0, 10); }
+function iso(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [] }; }
@@ -555,8 +560,15 @@ function editarBoleta(id) {
   editarPlanilla(boleta.planillaId);
 }
 function limpiarPlanillaForm(resetWeek = true) {
+  const semanaInicio = document.getElementById('p-fecha-inicio').value;
+  const semanaFin = document.getElementById('p-fecha-fin').value;
   document.getElementById('planilla-form').reset();
-  if (resetWeek) setSemanaActual();
+  if (resetWeek || !semanaInicio || !semanaFin) {
+    setSemanaActual();
+  } else {
+    document.getElementById('p-fecha-inicio').value = semanaInicio;
+    document.getElementById('p-fecha-fin').value = semanaFin;
+  }
   planillaEditId = null;
   document.getElementById('p-empleado').value = '';
   document.getElementById('p-empleado-buscar').value = '';

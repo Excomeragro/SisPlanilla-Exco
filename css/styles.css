@@ -527,11 +527,30 @@
     @page { size: letter portrait; margin: 8mm; }
     .receipt-box { box-shadow:none !important; max-width:100% !important; max-height:none !important; overflow:visible !important; border-radius:0 !important; }
     .receipt-pages { gap: 4mm !important; padding: 0 !important; }
-    .receipt-copy { height: 126mm; padding-bottom: 3mm !important; overflow: hidden; transform: scale(.93); width: 107.5%; margin-left: -3.75%; }
+    .receipt-copy { height: 126mm; padding-bottom: 2mm !important; overflow: hidden; transform: scale(.88); width: 113.64%; margin-left: -6.82%; }
     .receipt-copy:first-child { border-bottom: 1px dashed #555; }
-    .receipt-columns { padding-top: 3mm !important; padding-bottom: 1mm !important; }
-    .paper-line { line-height: 1.36 !important; padding-top: 1.1mm !important; padding-bottom: 1.1mm !important; }
-    .receipt-income-col { padding-top: 8mm !important; }
+    .receipt-header { padding: 5px 10px 4px !important; }
+    .receipt-company { font-size: 18px !important; }
+    .receipt-subtitle { font-size: 11px !important; margin-top: 2px !important; }
+    .receipt-body { padding: 0 10px 5px !important; }
+    .receipt-topline { font-size: 11.5px !important; margin-bottom: 5px !important; }
+    .receipt-employee-row { min-height: 48px !important; grid-template-columns: 1fr 235px 135px !important; }
+    .receipt-employee-main,
+    .receipt-pay-type,
+    .receipt-amount-box { padding: 6px 10px !important; }
+    .receipt-employee-main strong { margin-bottom: 5px !important; }
+    .receipt-pay-type span,
+    .receipt-amount-box span { margin-bottom: 5px !important; }
+    .receipt-amount-box strong { font-size: 13px !important; }
+    .receipt-columns { gap: 28px !important; padding-top: 2mm !important; padding-bottom: .5mm !important; }
+    .paper-section-title { font-size: 11.5px !important; margin-bottom: 3px !important; }
+    .paper-line { font-size: 11.5px !important; line-height: 1.2 !important; padding-top: .65mm !important; padding-bottom: .65mm !important; }
+    .receipt-income-col { padding-top: 5mm !important; }
+    .receipt-deductions-col { min-height: 210px !important; }
+    .other-discounts-title { margin-top: 10px !important; }
+    .paper-total-row { padding: 6px 10px !important; font-size: 12px !important; }
+    .receipt-signoff { padding: 6px 8px !important; font-size: 12px !important; }
+    .receipt-sign-line { height: 24px !important; }
     body.printing-payroll-detail > #payroll-detail-overlay { display:block !important; position:static !important; padding:0 !important; background:none !important; }
     body.printing-payroll-detail > #receipt-overlay { display:none !important; }
     body.printing-payroll-detail .payroll-detail-box { width:100% !important; margin:0 !important; padding:0 !important; box-shadow:none !important; }
