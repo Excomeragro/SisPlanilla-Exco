@@ -836,17 +836,17 @@ function abrirDetallePlanilla() {
     grupos.get(area).push(p);
   });
   const periodos = [...new Set(state.planillas.map(periodoTexto))].join(' / ');
-  const secciones = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'es')).map(([area, planillas]) => {
+  const filasPorArea = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'es')).map(([area, planillas]) => {
     const ordenadas = planillas.slice().sort((a, b) => a.empleadoSnapshot.nombre.localeCompare(b.empleadoSnapshot.nombre, 'es'));
     const filas = ordenadas.map(p => {
       const c = p.calc || {};
       const otros = num(c.prestamos) + num(c.otrosDescuentos);
       return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(p.empleadoSnapshot.salarioHora)}</td><td>${num(p.hOrdinarias).toFixed(2)}</td><td>0.00</td><td>${num(p.hExtra).toFixed(2)}</td><td>${num(p.hSeptimo).toFixed(2)}</td><td>${num(p.hAsueto).toFixed(2)}</td><td>${money(c.devengado)}</td><td>${money(c.renta)}</td><td>${money(c.isss)}</td><td>${money(c.afp)}</td><td>${money(otros)}</td><td>${money(c.neto)}</td></tr>`;
     }).join('');
-    return `<section class="payroll-area"><h3>ÁREA: ${esc(area.toUpperCase())}</h3><table class="payroll-detail-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filas}</tbody><tfoot>${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}</tfoot></table></section>`;
+    return `<tr class="area-title-row"><th colspan="13">ÁREA: ${esc(area.toUpperCase())}</th></tr>${filas}${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}`;
   }).join('');
   const totalGeneral = totalesDetallePlanilla(state.planillas);
-  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div>${secciones}<section class="payroll-area payroll-grand-section"><h3>TOTAL GENERAL DE PLANILLA</h3><table class="payroll-detail-table payroll-grand-total"><thead><tr><th>Concepto</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table></section>`;
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-overlay').classList.add('open');
 }
 function cerrarDetallePlanilla() {
