@@ -85,7 +85,7 @@
 
     <section class="view" id="view-planilla">
       <div class="page-head">
-        <div><h1>Planilla semanal</h1><p>La semana inicia lunes y finaliza domingo. Solo aparecen empleados activos.</p></div>
+        <div><h1>Planilla semanal</h1><p>La semana inicia lunes y finaliza domingo. Los empleados inactivos pueden cerrar proporcionalmente su última semana.</p></div>
       </div>
       <div class="card">
         <div class="card-header"><h2>Nuevo registro semanal</h2><span class="badge badge-blue" id="planilla-mode">Nuevo</span></div>
@@ -95,11 +95,12 @@
               <div class="form-divider">Semana</div>
               <div class="form-group"><label>Fecha inicio (lunes)</label><input type="date" id="p-fecha-inicio" onchange="ajustarSemanaDesdeInicio()"></div>
               <div class="form-group"><label>Fecha fin (domingo)</label><input type="date" id="p-fecha-fin" readonly></div>
-              <div class="form-group span2"><label>Empleado activo *</label><input type="search" id="p-empleado-buscar" list="p-empleados-lista" placeholder="Escribe apellido o nombre" autocomplete="off" oninput="buscarEmpleadoPlanilla()" onchange="buscarEmpleadoPlanilla()"><input type="hidden" id="p-empleado"><datalist id="p-empleados-lista"></datalist></div>
+              <div class="form-group span2"><label>Empleado disponible *</label><input type="search" id="p-empleado-buscar" list="p-empleados-lista" placeholder="Escribe apellido o nombre" autocomplete="off" oninput="buscarEmpleadoPlanilla()" onchange="buscarEmpleadoPlanilla()"><input type="hidden" id="p-empleado"><datalist id="p-empleados-lista"></datalist></div>
               <div class="form-group"><label>DUI</label><input type="text" id="p-dui" readonly></div>
               <div class="form-group"><label>Cargo</label><input type="text" id="p-cargo" readonly></div>
               <div class="form-group"><label>Departamento / area</label><input type="text" id="p-departamento" readonly></div>
               <div class="form-group"><label>Salario por hora</label><input type="number" id="p-salario-hora" readonly></div>
+              <div class="form-group span2"><label>Pago de última semana</label><input type="text" id="p-salida-info" readonly placeholder="Semana completa"></div>
               <div class="form-divider">Ingresos</div>
               <div class="form-group"><label>Horas ordinarias</label><input type="number" id="p-h-ordinarias" step="0.5" min="0" value="44" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group full"><label>Horas extra por día</label><div class="extra-days">
@@ -133,13 +134,13 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>Planilla actual</h2><span class="badge badge-green" id="planilla-count">0 registros</span></div>
+        <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><span class="badge badge-green" id="planilla-count">0 registros</span></div>
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
       </div>
     </section>
 
     <section class="view" id="view-empleados">
-      <div class="page-head"><div><h1>Lista de empleados</h1><p>Los empleados inactivos se conservan en archivo e historial, pero no aparecen para planillas ni boletas.</p></div></div>
+      <div class="page-head"><div><h1>Lista de empleados</h1><p>Los empleados inactivos se conservan en archivo e historial y pueden cerrar su última semana proporcional.</p></div></div>
       <div class="card">
         <div class="card-header"><h2 id="empleado-form-title">Registro completo de empleado</h2><span class="badge badge-blue" id="empleado-mode">Nuevo</span></div>
         <div class="card-body">
@@ -159,7 +160,7 @@
               <div class="form-group"><label>AFP</label><select id="e-afp-institucion"><option value="Confía">Confía</option><option value="Crecer">Crecer</option></select></div>
               <div class="form-group span2"><label>Descuentos del empleado</label><div class="check-grid"><label><input type="checkbox" id="e-desc-isss" checked> ISSS</label><label><input type="checkbox" id="e-desc-afp" checked> AFP</label><label><input type="checkbox" id="e-desc-renta"> Renta</label></div></div>
               <div class="form-group"><label>Estado</label><select id="e-estado" onchange="toggleFechaSalida()"><option value="activo">🟢 Activo</option><option value="inactivo">🔴 Inactivo</option></select></div>
-              <div class="form-group"><label>Fecha de salida</label><input type="date" id="e-fecha-salida"></div>
+              <div class="form-group"><label>Primer día que ya no asistió</label><input type="date" id="e-fecha-salida"></div>
               <div class="form-divider">Contacto de emergencia</div>
               <div class="form-group"><label>Nombre del contacto</label><input type="text" id="e-contacto-nombre"></div>
               <div class="form-group"><label>Teléfono del contacto</label><input type="text" id="e-contacto-telefono"></div>
@@ -200,12 +201,12 @@
     </section>
 
     <section class="view" id="view-boletas">
-      <div class="page-head"><div><h1>Crear boletas</h1><p>Solo empleados activos. Al generar una boleta se guarda automáticamente en el historial.</p></div></div>
+      <div class="page-head"><div><h1>Crear boletas</h1><p>Las boletas se generan desde una planilla vigente, incluso para el cierre de un empleado inactivo.</p></div></div>
       <div class="card">
         <div class="card-header"><h2>Boleta desde planilla</h2></div>
         <div class="card-body">
           <div class="form-grid">
-            <div class="form-group span2"><label>Empleado activo</label><select id="b-empleado" onchange="renderBoletasDisponibles()"></select></div>
+            <div class="form-group span2"><label>Empleado con planilla</label><select id="b-empleado" onchange="renderBoletasDisponibles()"></select></div>
             <div class="form-group span2"><label>Planilla pendiente / registrada</label><select id="b-planilla"></select></div>
           </div>
           <div class="btn-row"><button class="btn btn-primary" onclick="generarBoletaSeleccionada()">Ver boleta</button><button class="btn btn-success" onclick="imprimirBoletaSeleccionada()">Imprimir boleta</button><button class="btn btn-ghost" onclick="renderBoletasGeneradas()">Actualizar lista</button></div>
@@ -236,6 +237,13 @@
       </div>
     </section>
   </main>
+</div>
+
+<div id="payroll-detail-overlay">
+  <div class="payroll-detail-box">
+    <div id="payroll-detail-content"></div>
+    <div class="payroll-detail-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarDetallePlanilla()">Cerrar</button><button class="btn btn-success btn-sm" onclick="imprimirDetallePlanilla()">Imprimir detalle</button></div>
+  </div>
 </div>
 
 <div id="receipt-overlay">

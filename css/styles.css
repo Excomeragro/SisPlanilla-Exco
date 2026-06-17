@@ -327,6 +327,38 @@
     text-transform: none;
     letter-spacing: 0;
   }
+  #payroll-detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    overflow: auto;
+    padding: 20px;
+    background: rgba(0,0,0,.55);
+  }
+  #payroll-detail-overlay.open { display: block; }
+  .payroll-detail-box {
+    width: min(1380px, 100%);
+    margin: 0 auto;
+    padding: 24px;
+    background: #fff;
+    color: #111;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .payroll-report-header { margin-bottom: 18px; text-align: center; }
+  .payroll-report-header h1 { font-size: 20px; }
+  .payroll-report-header h2 { margin: 4px 0 8px; font-size: 15px; }
+  .payroll-report-header div { font-size: 12px; }
+  .payroll-area { margin-top: 18px; break-inside: avoid; }
+  .payroll-area h3 { padding: 7px 9px; background: #E2E8F0; border: 1px solid #94A3B8; font-size: 12px; }
+  .payroll-detail-table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: 10px; }
+  .payroll-detail-table th, .payroll-detail-table td { padding: 5px 4px; border: 1px solid #94A3B8; text-align: right; white-space: nowrap; }
+  .payroll-detail-table th:first-child, .payroll-detail-table td:first-child { min-width: 190px; text-align: left; white-space: normal; }
+  .payroll-detail-table thead { background: #0F172A; color: #fff; }
+  .payroll-detail-table .area-subtotal { background: #F1F5F9; font-weight: 700; }
+  .payroll-detail-table .grand-total { background: #D1FAE5; font-weight: 800; }
+  .payroll-grand-total { margin-top: 18px; }
+  .payroll-detail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   #receipt-overlay {
     display: none;
     position: fixed;
@@ -500,6 +532,13 @@
     .receipt-columns { padding-top: 3mm !important; padding-bottom: 1mm !important; }
     .paper-line { line-height: 1.36 !important; padding-top: 1.1mm !important; padding-bottom: 1.1mm !important; }
     .receipt-income-col { padding-top: 8mm !important; }
+    body.printing-payroll-detail > #payroll-detail-overlay { display:block !important; position:static !important; padding:0 !important; background:none !important; }
+    body.printing-payroll-detail > #receipt-overlay { display:none !important; }
+    body.printing-payroll-detail .payroll-detail-box { width:100% !important; margin:0 !important; padding:0 !important; box-shadow:none !important; }
+    body.printing-payroll-detail .payroll-detail-actions { display:none !important; }
+    body.printing-payroll-detail .payroll-detail-table { font-size:8px !important; }
+    body.printing-payroll-detail .payroll-detail-table th,
+    body.printing-payroll-detail .payroll-detail-table td { padding:3px 2px !important; }
   }
   @media (max-width: 980px) {
     .main-wrap { flex-direction: column; }

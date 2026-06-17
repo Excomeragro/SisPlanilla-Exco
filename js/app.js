@@ -222,8 +222,20 @@ function ordenarPorNombre(empleados) {
 function empleadosActivos() { return ordenarPorNombre(state.empleados.filter(e => e.estado === 'activo')); }
 function empleadoPorId(id) { return state.empleados.find(e => e.id === id); }
 function textoNormalizado(s) { return String(s || '').trim().toLowerCase(); }
+function semanaPlanillaActual() {
+  const inicio = document.getElementById('p-fecha-inicio')?.value || iso(lunesDeFecha(todayIso()));
+  const fin = document.getElementById('p-fecha-fin')?.value || iso(new Date(fechaLocal(inicio).getTime() + 6 * 86400000));
+  return { inicio, fin };
+}
+function empleadoAplicaSemana(emp) {
+  if (!emp) return false;
+  if (emp.estado === 'activo') return true;
+  if (!emp.fechaSalida) return false;
+  const { inicio } = semanaPlanillaActual();
+  return fechaLocal(emp.fechaSalida) >= fechaLocal(inicio);
+}
 function empleadoDisponiblePlanilla(emp) {
-  if (!emp || emp.estado !== 'activo') return false;
+  if (!empleadoAplicaSemana(emp)) return false;
   return !state.planillas.some(p => p.empleadoId === emp.id && p.id !== planillaEditId);
 }
 function empleadosDisponiblesPlanilla() {
@@ -252,6 +264,30 @@ function lunesDeFecha(value) {
   const diff = (day + 6) % 7;
   d.setDate(d.getDate() - diff);
   return d;
+}
+function pagoProporcionalSalida(emp) {
+  if (!emp || emp.estado !== 'inactivo' || !emp.fechaSalida) return null;
+  const { inicio, fin } = semanaPlanillaActual();
+  const salida = fechaLocal(emp.fechaSalida);
+  const lunes = fechaLocal(inicio);
+  const domingo = fechaLocal(fin);
+  const horasPorDia = [8, 8, 8, 8, 8, 4];
+  let horasOrdinarias = 0;
+  let diasTrabajados = 0;
+  horasPorDia.forEach((horas, indice) => {
+    const fecha = new Date(lunes);
+    fecha.setDate(lunes.getDate() + indice);
+    if (fecha < salida && fecha <= domingo) {
+      horasOrdinarias += horas;
+      diasTrabajados++;
+    }
+  });
+  return {
+    diasTrabajados,
+    horasOrdinarias,
+    horasSeptimo: diasTrabajados * 2,
+    fechaSalida: emp.fechaSalida
+  };
 }
 function sugerirRenta(devengado) {
   const semanal = num(devengado);
@@ -345,6 +381,7 @@ function ajustarSemanaDesdeInicio() {
   sunday.setDate(monday.getDate() + 6);
   document.getElementById('p-fecha-inicio').value = iso(monday);
   document.getElementById('p-fecha-fin').value = iso(sunday);
+  renderSelects();
 }
 function cargarEmpleadoPlanilla() {
   const emp = empleadoPorId(document.getElementById('p-empleado').value);
@@ -352,6 +389,17 @@ function cargarEmpleadoPlanilla() {
   document.getElementById('p-cargo').value = emp?.cargo || '';
   document.getElementById('p-departamento').value = emp?.departamento || '';
   document.getElementById('p-salario-hora').value = emp?.salarioHora || '';
+  const proporcional = pagoProporcionalSalida(emp);
+  const salidaInfo = document.getElementById('p-salida-info');
+  if (salidaInfo) {
+    salidaInfo.value = proporcional
+      ? `${proporcional.diasTrabajados} día(s) · ${proporcional.horasOrdinarias} h ordinarias · ${proporcional.horasSeptimo} h séptimo`
+      : (emp ? 'Semana completa' : '');
+  }
+  if (!planillaEditId && proporcional) {
+    document.getElementById('p-h-ordinarias').value = proporcional.horasOrdinarias;
+    document.getElementById('p-h-septimo').value = proporcional.horasSeptimo;
+  }
   if (!planillaEditId) document.getElementById('p-aplicar-renta').checked = !!emp?.aplicarRenta;
   calcularPreviewPlanilla();
 }
@@ -398,7 +446,7 @@ function calcularPreviewPlanilla() {
 }
 function guardarRegistroPlanilla() {
   const d = datosPlanillaForm();
-  if (!d.empleado) { toast('Selecciona un empleado activo.'); return; }
+  if (!d.empleado) { toast('Selecciona un empleado disponible.'); return; }
   if (!empleadoDisponiblePlanilla(d.empleado)) { toast('Ese empleado ya está en la planilla actual.'); return; }
   if (!d.fechaInicio || !d.fechaFin) { toast('Selecciona la semana de pago.'); return; }
   const calc = calcularPago(d);
@@ -550,6 +598,10 @@ function guardarEmpleado() {
   const emp = leerEmpleadoForm();
   if (!emp.nombre || !emp.fechaIngreso || !emp.cargo || !emp.departamento || emp.salarioHora <= 0) {
     toast('Completa nombre, ingreso, cargo, departamento y salario.');
+    return;
+  }
+  if (emp.estado === 'inactivo' && !emp.fechaSalida) {
+    toast('Indica el primer día que el empleado ya no asistió.');
     return;
   }
   const dup = state.empleados.find(e => e.id !== emp.id && e.nombre.toLowerCase() === emp.nombre.toLowerCase());
@@ -706,7 +758,7 @@ function generarBoletaDesdePlanilla(id) {
   const p = state.planillas.find(x => x.id === id);
   if (!p) { toast('Selecciona una planilla.'); return; }
   const empActual = empleadoPorId(p.empleadoId);
-  if (!empActual || empActual.estado !== 'activo') { toast('El empleado está inactivo y no puede generar boletas.'); return; }
+  if (!empActual) { toast('No se encontró el empleado de esta planilla.'); return; }
   const boleta = guardarBoletaAutomatica(p);
   guardarEstado();
   mostrarBoleta(p, boleta);
@@ -748,6 +800,64 @@ function imprimirHistorialSeleccionado() {
   mostrarBoletas(boletas);
   setTimeout(() => window.print(), 100);
 }
+function totalesDetallePlanilla(planillas) {
+  return planillas.reduce((total, p) => {
+    total.horasD += num(p.hOrdinarias);
+    total.horasN += 0;
+    total.horasExtra += num(p.hExtra);
+    total.horasSeptimo += num(p.hSeptimo);
+    total.horasAsueto += num(p.hAsueto);
+    total.devengado += num(p.calc?.devengado);
+    total.renta += num(p.calc?.renta);
+    total.isss += num(p.calc?.isss);
+    total.afp += num(p.calc?.afp);
+    total.otros += num(p.calc?.prestamos) + num(p.calc?.otrosDescuentos);
+    total.neto += num(p.calc?.neto);
+    return total;
+  }, { horasD: 0, horasN: 0, horasExtra: 0, horasSeptimo: 0, horasAsueto: 0, devengado: 0, renta: 0, isss: 0, afp: 0, otros: 0, neto: 0 });
+}
+function filaTotalesDetalle(label, total, clase = '') {
+  return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.horasN).toFixed(2)}</th><th>${num(total.horasExtra).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
+}
+function abrirDetallePlanilla() {
+  if (!state.planillas.length) { toast('No hay registros para generar el detalle.'); return; }
+  const grupos = new Map();
+  state.planillas.forEach(p => {
+    const area = p.empleadoSnapshot?.departamento || 'Sin área';
+    if (!grupos.has(area)) grupos.set(area, []);
+    grupos.get(area).push(p);
+  });
+  const periodos = [...new Set(state.planillas.map(periodoTexto))].join(' / ');
+  const secciones = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'es')).map(([area, planillas]) => {
+    const ordenadas = planillas.slice().sort((a, b) => a.empleadoSnapshot.nombre.localeCompare(b.empleadoSnapshot.nombre, 'es'));
+    const filas = ordenadas.map(p => {
+      const c = p.calc || {};
+      const otros = num(c.prestamos) + num(c.otrosDescuentos);
+      return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(p.empleadoSnapshot.salarioHora)}</td><td>${num(p.hOrdinarias).toFixed(2)}</td><td>0.00</td><td>${num(p.hExtra).toFixed(2)}</td><td>${num(p.hSeptimo).toFixed(2)}</td><td>${num(p.hAsueto).toFixed(2)}</td><td>${money(c.devengado)}</td><td>${money(c.renta)}</td><td>${money(c.isss)}</td><td>${money(c.afp)}</td><td>${money(otros)}</td><td>${money(c.neto)}</td></tr>`;
+    }).join('');
+    return `<section class="payroll-area"><h3>ÁREA: ${esc(area.toUpperCase())}</h3><table class="payroll-detail-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filas}</tbody><tfoot>${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}</tfoot></table></section>`;
+  }).join('');
+  const totalGeneral = totalesDetallePlanilla(state.planillas);
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div>${secciones}<table class="payroll-detail-table payroll-grand-total"><tbody>${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
+  document.getElementById('payroll-detail-overlay').classList.add('open');
+}
+function cerrarDetallePlanilla() {
+  document.getElementById('payroll-detail-overlay').classList.remove('open');
+}
+function limpiarModoImpresionDetalle() {
+  document.body.classList.remove('printing-payroll-detail');
+  document.getElementById('payroll-detail-page-style')?.remove();
+}
+function imprimirDetallePlanilla() {
+  document.body.classList.add('printing-payroll-detail');
+  const style = document.createElement('style');
+  style.id = 'payroll-detail-page-style';
+  style.textContent = '@page { size: letter landscape; margin: 8mm; }';
+  document.head.appendChild(style);
+  window.print();
+}
+window.addEventListener('afterprint', limpiarModoImpresionDetalle);
+document.getElementById('payroll-detail-overlay').addEventListener('click', e => { if (e.target.id === 'payroll-detail-overlay') cerrarDetallePlanilla(); });
 function generarCopiaBoleta(p, boleta, vacia = false) {
   const emp = vacia ? {} : p.empleadoSnapshot;
   const c = vacia ? {} : p.calc;
@@ -894,7 +1004,8 @@ function renderStats() {
 }
 function renderSelects() {
   const planillaOptions = empleadosDisponiblesPlanilla().map(e => `<option value="${esc(e.nombre)}">${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
-  const activeOptions = empleadosActivos().map(e => `<option value="${e.id}">${esc(e.nombre)} · ${esc(e.departamento)}</option>`).join('');
+  const empleadosConPlanilla = ordenarPorNombre(state.empleados.filter(e => state.planillas.some(p => p.empleadoId === e.id && planillaVigente(p))));
+  const boletaOptions = empleadosConPlanilla.map(e => `<option value="${e.id}">${esc(e.nombre)} · ${esc(e.departamento)}${e.estado === 'inactivo' ? ' · Inactivo' : ''}</option>`).join('');
   document.getElementById('p-empleados-lista').innerHTML = planillaOptions;
   const planillaHidden = document.getElementById('p-empleado');
   const planillaInput = document.getElementById('p-empleado-buscar');
@@ -903,7 +1014,7 @@ function renderSelects() {
     planillaHidden.value = '';
     if (planillaInput) planillaInput.value = '';
   }
-  document.getElementById('b-empleado').innerHTML = activeOptions || '<option value="">No hay empleados activos</option>';
+  document.getElementById('b-empleado').innerHTML = boletaOptions || '<option value="">No hay planillas disponibles</option>';
   document.getElementById('h-empleado').innerHTML = ordenarPorNombre(state.empleados).map(e => `<option value="${e.id}">${esc(e.nombre)} · ${e.estado === 'activo' ? 'Activo' : 'Inactivo'}</option>`).join('') || '<option value="">Sin empleados</option>';
   cargarEmpleadoPlanilla();
   renderBoletasDisponibles();
@@ -961,7 +1072,6 @@ function renderPlanilla() {
   if (!state.planillas.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="table-empty">No hay registros de planilla.</div></td></tr>'; tfoot.innerHTML = ''; return; }
   let dev = 0, desc = 0, net = 0;
   tbody.innerHTML = state.planillas.map((p, i) => {
-    const empActivo = empleadoPorId(p.empleadoId)?.estado === 'activo';
     dev += p.calc.devengado; desc += p.calc.descuentos; net += p.calc.neto;
     return `<tr>
       <td>${i + 1}</td>
@@ -969,7 +1079,7 @@ function renderPlanilla() {
       <td>${esc(periodoTexto(p))}</td>
       <td>${p.hOrdinarias}</td><td>${p.hExtra}</td><td>${esc(resumenDiasExtra(p.extraDias) || p.extraDia || '-')}</td>
       <td class="col-money">${money(p.calc.devengado)}</td><td class="col-discount">${money(p.calc.descuentos)}</td><td class="col-net">${money(p.calc.neto)}</td>
-      <td class="actions-cell">${empActivo ? `<button class="btn btn-primary btn-sm" onclick="generarBoletaDesdePlanilla('${p.id}')">Ver boleta</button>` : '<span class="badge badge-red">Inactivo</span>'}</td>
+      <td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="generarBoletaDesdePlanilla('${p.id}')">Ver boleta</button></td>
       <td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarPlanilla('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarPlanilla('${p.id}')">Quitar</button></td>
     </tr>`;
   }).join('');
@@ -994,7 +1104,7 @@ function renderHistorial() {
 }
 function renderBoletasDisponibles() {
   const empId = document.getElementById('b-empleado').value;
-  const opciones = state.planillas.filter(p => p.empleadoId === empId && empleadoPorId(p.empleadoId)?.estado === 'activo' && planillaVigente(p)).map(p => `<option value="${p.id}">${esc(periodoTexto(p))} · ${money(p.calc.neto)}${p.boletaGenerada ? ' · ya generada' : ''}</option>`).join('');
+  const opciones = state.planillas.filter(p => p.empleadoId === empId && planillaVigente(p)).map(p => `<option value="${p.id}">${esc(periodoTexto(p))} · ${money(p.calc.neto)}${p.boletaGenerada ? ' · ya generada' : ''}</option>`).join('');
   document.getElementById('b-planilla').innerHTML = opciones || '<option value="">Sin planillas disponibles</option>';
 }
 function renderBoletasGeneradas() {
