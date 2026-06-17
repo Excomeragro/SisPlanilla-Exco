@@ -121,7 +121,7 @@
               <div class="form-group"><label>Renta sugerida 10%</label><input type="text" id="p-renta-sugerida" readonly></div>
               <label class="inline-check"><input type="checkbox" id="p-aplicar-renta" onchange="calcularPreviewPlanilla()"> Aplicar renta</label>
               <div class="form-group"><label>Préstamos ($)</label><input class="zero-ref" type="number" id="p-prestamos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
-              <div class="form-group"><label>Otros descuentos ($)</label><input class="zero-ref" type="number" id="p-otros-descuentos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label id="p-otros-desc-label">Otros descuentos ($)</label><input class="zero-ref" type="number" id="p-otros-descuentos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
             </div>
             <div class="calc-preview">
               <div class="calc-item"><span>Total devengado</span><strong id="p-prev-devengado">$0.00</strong></div>
@@ -159,6 +159,8 @@
               <div class="form-group"><label>Tipo de pago</label><select id="e-tipo-pago"><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Por obra</option></select></div>
               <div class="form-group"><label>AFP</label><select id="e-afp-institucion"><option value="Confía">Confía</option><option value="Crecer">Crecer</option></select></div>
               <div class="form-group span2"><label>Descuentos del empleado</label><div class="check-grid"><label><input type="checkbox" id="e-desc-isss" checked> ISSS</label><label><input type="checkbox" id="e-desc-afp" checked> AFP</label><label><input type="checkbox" id="e-desc-renta"> Renta</label></div></div>
+              <div class="form-group"><label>Tipo de descuento</label><select id="e-descuento-concepto"><option value="">Ninguno</option><option value="Prestamo">Préstamo</option><option value="Casa">Casa</option><option value="Otro">Otro</option></select></div>
+              <div class="form-group"><label>Descuento semanal ($)</label><input class="zero-ref" type="number" id="e-descuento-fijo" step="0.01" min="0" value="" placeholder="0"></div>
               <div class="form-group"><label>Estado</label><select id="e-estado" onchange="toggleFechaSalida()"><option value="activo">🟢 Activo</option><option value="inactivo">🔴 Inactivo</option></select></div>
               <div class="form-group"><label>Primer día que ya no asistió</label><input type="date" id="e-fecha-salida"></div>
               <div class="form-divider">Contacto de emergencia</div>

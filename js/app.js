@@ -59,6 +59,8 @@ function normalizarEmpleado(e) {
     descontarIsss: e.descontarIsss !== false,
     descontarAfp: e.descontarAfp !== false,
     aplicarRenta: !!e.aplicarRenta,
+    descuentoConcepto: ['Prestamo', 'Casa', 'Otro'].includes(e.descuentoConcepto) ? e.descuentoConcepto : '',
+    descuentoFijo: num(e.descuentoFijo),
     contactoNombre: (e.contactoNombre || '').trim(),
     contactoTelefono: (e.contactoTelefono || '').trim(),
     contactoParentesco: (e.contactoParentesco || e.parentesco || '').trim(),
@@ -401,6 +403,13 @@ function cargarEmpleadoPlanilla() {
     document.getElementById('p-h-ordinarias').value = proporcional.horasOrdinarias;
     document.getElementById('p-h-septimo').value = proporcional.horasSeptimo;
   }
+  if (!planillaEditId && emp) {
+    const descuentoFijo = num(emp.descuentoFijo);
+    ponerNumeroReferencia('p-prestamos', emp.descuentoConcepto === 'Prestamo' ? descuentoFijo : 0);
+    ponerNumeroReferencia('p-otros-descuentos', emp.descuentoConcepto !== 'Prestamo' ? descuentoFijo : 0);
+  }
+  const otrosLabel = document.getElementById('p-otros-desc-label');
+  if (otrosLabel) otrosLabel.textContent = emp?.descuentoConcepto === 'Casa' ? 'Descuento casa ($)' : 'Otros descuentos ($)';
   if (!planillaEditId) document.getElementById('p-aplicar-renta').checked = !!emp?.aplicarRenta;
   calcularPreviewPlanilla();
 }
@@ -595,6 +604,8 @@ function leerEmpleadoForm() {
     descontarIsss: document.getElementById('e-desc-isss').checked,
     descontarAfp: document.getElementById('e-desc-afp').checked,
     aplicarRenta: document.getElementById('e-desc-renta').checked,
+    descuentoConcepto: document.getElementById('e-descuento-concepto').value,
+    descuentoFijo: document.getElementById('e-descuento-fijo').value,
     estado: document.getElementById('e-estado').value,
     fechaSalida: document.getElementById('e-fecha-salida').value,
     contactoNombre: document.getElementById('e-contacto-nombre').value,
@@ -639,6 +650,8 @@ function editarEmpleado(id) {
   document.getElementById('e-desc-isss').checked = e.descontarIsss !== false;
   document.getElementById('e-desc-afp').checked = e.descontarAfp !== false;
   document.getElementById('e-desc-renta').checked = !!e.aplicarRenta;
+  document.getElementById('e-descuento-concepto').value = e.descuentoConcepto || '';
+  document.getElementById('e-descuento-fijo').value = num(e.descuentoFijo) > 0 ? e.descuentoFijo : '';
   document.getElementById('e-estado').value = e.estado;
   document.getElementById('e-fecha-salida').value = e.fechaSalida;
   document.getElementById('e-contacto-nombre').value = e.contactoNombre;
@@ -659,6 +672,8 @@ function limpiarEmpleadoForm(reset = true) {
   document.getElementById('e-desc-isss').checked = true;
   document.getElementById('e-desc-afp').checked = true;
   document.getElementById('e-desc-renta').checked = false;
+  document.getElementById('e-descuento-concepto').value = '';
+  document.getElementById('e-descuento-fijo').value = '';
   document.getElementById('empleado-form-title').textContent = 'Registro completo de empleado';
   document.getElementById('empleado-mode').textContent = 'Nuevo';
   document.getElementById('empleado-mode').className = 'badge badge-blue';
@@ -677,7 +692,10 @@ function descuentosEmpleadoHtml(e) {
   if (e.descontarIsss !== false) items.push('ISSS');
   if (e.descontarAfp !== false) items.push('AFP');
   if (e.aplicarRenta) items.push('Renta');
-  return items.length ? `<span class="col-sub">${esc(items.join(' · '))}</span>` : '<span class="badge badge-amber">Sin ley</span>';
+  const legales = items.length ? `<span class="col-sub">${esc(items.join(' · '))}</span>` : '<span class="badge badge-amber">Sin ley</span>';
+  const concepto = e.descuentoConcepto === 'Prestamo' ? 'Préstamo' : (e.descuentoConcepto || 'Otro');
+  const fijo = num(e.descuentoFijo) > 0 ? `<div class="col-sub">${esc(concepto)}: ${money(e.descuentoFijo)}</div>` : '';
+  return legales + fijo;
 }
 function verHistorialEmpleado(id) {
   showTab('historial');
@@ -873,6 +891,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
   const texto = value => vacia ? espacio : esc(value || '');
   const dinero = value => vacia ? espacio : money(value);
   const cantidad = value => vacia ? espacio : num(value).toFixed(2);
+  const otrosLabel = !vacia && emp.descuentoConcepto === 'Casa' ? 'Casa:' : 'Otros:';
   const fechaCorta = fecha => {
     if (vacia || !fecha) return '';
     const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -945,7 +964,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
               </div>
               <div class="paper-section-title other-discounts-title">OTROS DESCUENTOS:</div>
               <div>
-                ${deductionLine('Otros:', c.otrosDescuentos)}
+                ${deductionLine(otrosLabel, c.otrosDescuentos)}
                 ${deductionLine('Prest.:', c.prestamos)}
               </div>
               <div class="paper-line simple deduction-line descuentos-row"><span class="label">TOTAL DESCUENTOS</span><strong class="amount">${dinero(c.descuentos)}</strong></div>
