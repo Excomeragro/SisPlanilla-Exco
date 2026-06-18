@@ -11,7 +11,7 @@ const EXTRA_DIAS = [
   { key: 'jueves', label: 'Jueves' },
   { key: 'viernes', label: 'Viernes' },
   { key: 'sabado', label: 'Sábado' },
-  { key: 'domingo', label: 'Domingo' }
+  { key: 'domingo', label: 'Descanso laborado' }
 ];
 let state = cargarEstado();
 let empleadoEditId = null;
@@ -917,7 +917,7 @@ function abrirDetallePlanilla() {
     return `<tr class="area-title-row"><th colspan="14">ÁREA: ${esc(area.toUpperCase())}</th></tr>${filas}${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}`;
   }).join('');
   const totalGeneral = totalesDetallePlanilla(state.planillas);
-  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Domingo</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Desc. laborado</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
   document.getElementById('payroll-detail-overlay').dataset.reportType = 'payroll';
   document.getElementById('payroll-detail-overlay').classList.add('open');
@@ -1009,7 +1009,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${line('H. Asueto:', p?.hAsueto, c.asueto)}
                 ${moneyLine('Incapacidad:', 0)}
                 ${moneyLine('Otros ingresos:', c.otrosIngresos)}
-                ${line('Horas séptimo:', p?.hDomingo ?? p?.extraDias?.domingo, c.domingo)}
+                ${line('Descanso laborado:', p?.hDomingo ?? p?.extraDias?.domingo, c.domingo)}
               </div>
             </div>
             <div class="receipt-deductions-col">
