@@ -489,8 +489,19 @@
   }
   .paper-total-row span { min-width: 160px; text-align: right; }
   .paper-total-row strong { min-width: 72px; text-align: left; }
-  .devengado-row { margin: 0 0 8px; width: 100%; }
-  .devengado-row strong { font-weight: 400; }
+  .devengado-row {
+    display: grid;
+    grid-template-columns: 170px 72px;
+    column-gap: 18px;
+    width: 250px;
+    margin: 0 54px 10px auto;
+    padding: 0;
+    border: 0;
+    font-size: 13px;
+  }
+  .devengado-row span { min-width: 0; text-align: right; font-weight: 700; }
+  .devengado-row strong { min-width: 0; text-align: left; font-weight: 700; }
+  .receipt-deductions-col > .paper-section-title { width: 250px; margin-left: auto; margin-right: 54px; }
   .descuentos-row { margin-top: 4px; }
   .descuentos-row .amount { font-weight: 700; }
   .receipt-signoff {
@@ -499,13 +510,13 @@
     gap: 10px;
     align-items: end;
     border: 1px solid #222;
-    padding: 8px 10px;
+    padding: 10px 10px;
     font-size: 14px;
     width: 100%;
     max-width: none;
     margin: auto 0 0;
   }
-  .receipt-sign-line { border-bottom: 2px solid #111; height: 30px; }
+  .receipt-sign-line { border-bottom: 2px solid #111; height: 38px; }
   .receipt-footer { display: none; }
   .receipt-actions { display:flex; gap:8px; padding: 0 24px 20px; justify-content:flex-end; }
   #toast {
@@ -554,8 +565,9 @@
     .receipt-deductions-col { min-height: 210px !important; }
     .other-discounts-title { margin-top: 10px !important; }
     .paper-total-row { padding: 6px 10px !important; font-size: 12px !important; }
-    .receipt-signoff { padding: 6px 8px !important; font-size: 12px !important; }
-    .receipt-sign-line { height: 24px !important; }
+    .devengado-row { padding:0 !important; margin:0 54px 8px auto !important; font-size:12px !important; }
+    .receipt-signoff { min-height:46px !important; padding:7px 8px !important; font-size:12px !important; }
+    .receipt-sign-line { height:32px !important; }
     body.printing-payroll-detail > #payroll-detail-overlay { display:block !important; position:static !important; padding:0 !important; background:none !important; }
     body.printing-payroll-detail > #receipt-overlay { display:none !important; }
     body.printing-payroll-detail .payroll-detail-box { width:100% !important; margin:0 !important; padding:0 !important; box-shadow:none !important; }
