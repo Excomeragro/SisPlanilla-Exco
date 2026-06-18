@@ -105,8 +105,9 @@
                 <label>Jueves<input class="zero-ref" type="number" id="p-extra-jueves" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
                 <label>Viernes<input class="zero-ref" type="number" id="p-extra-viernes" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
                 <label>Sábado<input class="zero-ref" type="number" id="p-extra-sabado" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
-                <label>Domingo<input class="zero-ref" type="number" id="p-extra-domingo" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Domingo (1.5×)<input class="zero-ref" type="number" id="p-extra-domingo" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
               </div></div>
+              <div class="form-group"><label>Pago domingo trabajado 1.5×</label><input type="text" id="p-domingo-pago" readonly></div>
               <div class="form-group"><label>Séptimo (horas)</label><input type="number" id="p-h-septimo" step="0.5" min="0" value="12" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Asuetos (horas)</label><input class="zero-ref" type="number" id="p-h-asueto" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Otros ingresos ($)</label><input class="zero-ref" type="number" id="p-otros-ingresos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
@@ -130,7 +131,7 @@
       </div>
       <div class="card">
         <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-primary btn-sm" onclick="abrirDesgloseEfectivo()">Desglose de efectivo</button><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><span class="badge badge-green" id="planilla-count">0 registros</span></div>
-        <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra L-S</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
       </div>
     </section>
 
