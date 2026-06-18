@@ -849,23 +849,14 @@ function planillasSemanaSeleccionada() {
 function abrirDesgloseEfectivo() {
   const planillas = planillasSemanaSeleccionada();
   if (!planillas.length) { toast('No hay pagos en la semana seleccionada.'); return; }
-  const totales = Object.fromEntries(DENOMINACIONES_EFECTIVO.map(d => [d.centavos, 0]));
-  let totalCentavos = 0;
-  const filasEmpleados = planillas.slice().sort((a, b) => a.empleadoSnapshot.nombre.localeCompare(b.empleadoSnapshot.nombre, 'es')).map(p => {
-    const netoCentavos = Math.max(0, Math.round(num(p.calc?.neto) * 100));
-    const desglose = desglosarEfectivo(netoCentavos / 100);
-    totalCentavos += netoCentavos;
-    DENOMINACIONES_EFECTIVO.forEach(d => { totales[d.centavos] += desglose[d.centavos]; });
-    const cantidades = DENOMINACIONES_EFECTIVO.map(d => `<td>${desglose[d.centavos]}</td>`).join('');
-    return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(netoCentavos / 100)}</td>${cantidades}</tr>`;
-  }).join('');
+  const totalCentavos = planillas.reduce((total, p) => total + Math.max(0, Math.round(num(p.calc?.neto) * 100)), 0);
+  const totales = desglosarEfectivo(totalCentavos / 100);
   const filasBanco = DENOMINACIONES_EFECTIVO.map(d => {
     const cantidad = totales[d.centavos];
     return `<tr><td>${d.tipo}</td><td>${d.etiqueta}</td><td>${cantidad}</td><td>${money((cantidad * d.centavos) / 100)}</td></tr>`;
   }).join('');
-  const encabezadosDenominacion = DENOMINACIONES_EFECTIVO.map(d => `<th>${d.etiqueta}</th>`).join('');
   const { inicio, fin } = semanaPlanillaActual();
-  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DESGLOSE DE EFECTIVO PARA PAGOS</h2><div><strong>Período:</strong> ${esc(inicio)} al ${esc(fin)}</div></div><div class="cash-report-total">TOTAL A RETIRAR: <strong>${money(totalCentavos / 100)}</strong></div><table class="payroll-detail-table cash-summary-table"><thead><tr><th>Tipo</th><th>Denominación</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>${filasBanco}</tbody><tfoot><tr class="grand-total"><th colspan="3">TOTAL</th><th>${money(totalCentavos / 100)}</th></tr></tfoot></table><h3 class="cash-detail-title">DETALLE POR EMPLEADO</h3><table class="payroll-detail-table cash-employee-table"><thead><tr><th>Empleado</th><th>Neto</th>${encabezadosDenominacion}</tr></thead><tbody>${filasEmpleados}</tbody></table>`;
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DESGLOSE GENERAL DE EFECTIVO</h2><div><strong>Período:</strong> ${esc(inicio)} al ${esc(fin)} · <strong>Pagos incluidos:</strong> ${planillas.length}</div></div><div class="cash-report-total">TOTAL GENERAL A RETIRAR: <strong>${money(totalCentavos / 100)}</strong></div><table class="payroll-detail-table cash-summary-table"><thead><tr><th>Tipo</th><th>Denominación</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>${filasBanco}</tbody><tfoot><tr class="grand-total"><th colspan="3">TOTAL GENERAL</th><th>${money(totalCentavos / 100)}</th></tr></tfoot></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir desglose';
   document.getElementById('payroll-detail-overlay').classList.add('open');
 }
