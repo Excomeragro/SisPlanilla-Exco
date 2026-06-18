@@ -864,6 +864,7 @@ function abrirDesgloseEfectivo() {
   const { inicio, fin } = semanaPlanillaActual();
   document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DESGLOSE GENERAL DE EFECTIVO</h2><div><strong>Período:</strong> ${esc(inicio)} al ${esc(fin)} · <strong>Pagos incluidos:</strong> ${planillas.length} · Cálculo por pago individual</div></div><div class="cash-report-total">TOTAL GENERAL A RETIRAR: <strong>${money(totalCentavos / 100)}</strong></div><table class="payroll-detail-table cash-summary-table"><thead><tr><th>Tipo</th><th>Denominación</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>${filasBanco}</tbody><tfoot><tr class="grand-total"><th colspan="3">TOTAL GENERAL</th><th>${money(totalCentavos / 100)}</th></tr></tfoot></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir desglose';
+  document.getElementById('payroll-detail-overlay').dataset.reportType = 'cash';
   document.getElementById('payroll-detail-overlay').classList.add('open');
 }
 function totalesDetallePlanilla(planillas) {
@@ -906,6 +907,7 @@ function abrirDetallePlanilla() {
   const totalGeneral = totalesDetallePlanilla(state.planillas);
   document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
+  document.getElementById('payroll-detail-overlay').dataset.reportType = 'payroll';
   document.getElementById('payroll-detail-overlay').classList.add('open');
 }
 function cerrarDetallePlanilla() {
@@ -913,13 +915,16 @@ function cerrarDetallePlanilla() {
 }
 function limpiarModoImpresionDetalle() {
   document.body.classList.remove('printing-payroll-detail');
+  document.body.classList.remove('printing-cash-report');
   document.getElementById('payroll-detail-page-style')?.remove();
 }
 function imprimirDetallePlanilla() {
+  const esDesglose = document.getElementById('payroll-detail-overlay').dataset.reportType === 'cash';
   document.body.classList.add('printing-payroll-detail');
+  document.body.classList.toggle('printing-cash-report', esDesglose);
   const style = document.createElement('style');
   style.id = 'payroll-detail-page-style';
-  style.textContent = '@page { size: letter landscape; margin: 8mm; }';
+  style.textContent = esDesglose ? '@page { size: letter portrait; margin: 12mm; }' : '@page { size: letter landscape; margin: 8mm; }';
   document.head.appendChild(style);
   window.print();
 }
