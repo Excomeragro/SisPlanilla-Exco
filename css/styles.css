@@ -359,6 +359,13 @@
   .payroll-detail-table .area-subtotal { background: #F1F5F9; font-weight: 700; }
   .payroll-detail-table .grand-total { background: #D1FAE5; font-weight: 800; }
   .payroll-grand-total { margin-top: 18px; }
+  .cash-report-total { margin: 0 auto 10px; padding: 8px 12px; max-width: 520px; border: 1px solid #0F172A; text-align: center; font-size: 13px; }
+  .cash-report-total strong { margin-left: 10px; font-size: 16px; }
+  .cash-summary-table { max-width: 520px; margin: 0 auto 12px; }
+  .cash-summary-table th:first-child, .cash-summary-table td:first-child { min-width: 90px; }
+  .cash-detail-title { margin: 10px 0 4px; font-size: 10px; text-align: center; }
+  .cash-employee-table th:not(:first-child), .cash-employee-table td:not(:first-child) { text-align: center; }
+  .cash-employee-table th:first-child, .cash-employee-table td:first-child { min-width: 210px; }
   .payroll-detail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   #receipt-overlay {
     display: none;
@@ -565,6 +572,10 @@
     body.printing-payroll-detail .payroll-detail-table th,
     body.printing-payroll-detail .payroll-detail-table td { padding:2px 1px !important; line-height:1.05 !important; }
     body.printing-payroll-detail .payroll-detail-table .area-title-row th { padding:2px 3px !important; }
+    body.printing-payroll-detail .cash-report-total { margin-bottom:5px !important; padding:4px 8px !important; font-size:9px !important; }
+    body.printing-payroll-detail .cash-report-total strong { font-size:11px !important; }
+    body.printing-payroll-detail .cash-summary-table { margin-bottom:6px !important; }
+    body.printing-payroll-detail .cash-detail-title { margin:5px 0 2px !important; font-size:8px !important; }
   }
   @media (max-width: 980px) {
     .main-wrap { flex-direction: column; }

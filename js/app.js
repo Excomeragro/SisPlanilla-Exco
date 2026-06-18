@@ -823,6 +823,52 @@ function imprimirHistorialSeleccionado() {
   mostrarBoletas(boletas);
   setTimeout(() => window.print(), 100);
 }
+const DENOMINACIONES_EFECTIVO = [
+  { centavos: 2000, etiqueta: '$20.00', tipo: 'Billete' },
+  { centavos: 1000, etiqueta: '$10.00', tipo: 'Billete' },
+  { centavos: 500, etiqueta: '$5.00', tipo: 'Billete' },
+  { centavos: 100, etiqueta: '$1.00', tipo: 'Billete/moneda' },
+  { centavos: 25, etiqueta: '$0.25', tipo: 'Moneda' },
+  { centavos: 10, etiqueta: '$0.10', tipo: 'Moneda' },
+  { centavos: 5, etiqueta: '$0.05', tipo: 'Moneda' },
+  { centavos: 1, etiqueta: '$0.01', tipo: 'Moneda' }
+];
+function desglosarEfectivo(monto) {
+  let restante = Math.max(0, Math.round(num(monto) * 100));
+  const cantidades = {};
+  DENOMINACIONES_EFECTIVO.forEach(d => {
+    cantidades[d.centavos] = Math.floor(restante / d.centavos);
+    restante %= d.centavos;
+  });
+  return cantidades;
+}
+function planillasSemanaSeleccionada() {
+  const { inicio, fin } = semanaPlanillaActual();
+  return state.planillas.filter(p => p.fechaInicio === inicio && p.fechaFin === fin);
+}
+function abrirDesgloseEfectivo() {
+  const planillas = planillasSemanaSeleccionada();
+  if (!planillas.length) { toast('No hay pagos en la semana seleccionada.'); return; }
+  const totales = Object.fromEntries(DENOMINACIONES_EFECTIVO.map(d => [d.centavos, 0]));
+  let totalCentavos = 0;
+  const filasEmpleados = planillas.slice().sort((a, b) => a.empleadoSnapshot.nombre.localeCompare(b.empleadoSnapshot.nombre, 'es')).map(p => {
+    const netoCentavos = Math.max(0, Math.round(num(p.calc?.neto) * 100));
+    const desglose = desglosarEfectivo(netoCentavos / 100);
+    totalCentavos += netoCentavos;
+    DENOMINACIONES_EFECTIVO.forEach(d => { totales[d.centavos] += desglose[d.centavos]; });
+    const cantidades = DENOMINACIONES_EFECTIVO.map(d => `<td>${desglose[d.centavos]}</td>`).join('');
+    return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(netoCentavos / 100)}</td>${cantidades}</tr>`;
+  }).join('');
+  const filasBanco = DENOMINACIONES_EFECTIVO.map(d => {
+    const cantidad = totales[d.centavos];
+    return `<tr><td>${d.tipo}</td><td>${d.etiqueta}</td><td>${cantidad}</td><td>${money((cantidad * d.centavos) / 100)}</td></tr>`;
+  }).join('');
+  const encabezadosDenominacion = DENOMINACIONES_EFECTIVO.map(d => `<th>${d.etiqueta}</th>`).join('');
+  const { inicio, fin } = semanaPlanillaActual();
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DESGLOSE DE EFECTIVO PARA PAGOS</h2><div><strong>Período:</strong> ${esc(inicio)} al ${esc(fin)}</div></div><div class="cash-report-total">TOTAL A RETIRAR: <strong>${money(totalCentavos / 100)}</strong></div><table class="payroll-detail-table cash-summary-table"><thead><tr><th>Tipo</th><th>Denominación</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>${filasBanco}</tbody><tfoot><tr class="grand-total"><th colspan="3">TOTAL</th><th>${money(totalCentavos / 100)}</th></tr></tfoot></table><h3 class="cash-detail-title">DETALLE POR EMPLEADO</h3><table class="payroll-detail-table cash-employee-table"><thead><tr><th>Empleado</th><th>Neto</th>${encabezadosDenominacion}</tr></thead><tbody>${filasEmpleados}</tbody></table>`;
+  document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir desglose';
+  document.getElementById('payroll-detail-overlay').classList.add('open');
+}
 function totalesDetallePlanilla(planillas) {
   return planillas.reduce((total, p) => {
     total.horasD += num(p.hOrdinarias);
@@ -862,6 +908,7 @@ function abrirDetallePlanilla() {
   }).join('');
   const totalGeneral = totalesDetallePlanilla(state.planillas);
   document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
+  document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
   document.getElementById('payroll-detail-overlay').classList.add('open');
 }
 function cerrarDetallePlanilla() {

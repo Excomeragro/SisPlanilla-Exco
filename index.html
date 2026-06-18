@@ -129,7 +129,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><span class="badge badge-green" id="planilla-count">0 registros</span></div>
+        <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-primary btn-sm" onclick="abrirDesgloseEfectivo()">Desglose de efectivo</button><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><span class="badge badge-green" id="planilla-count">0 registros</span></div>
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
       </div>
     </section>
@@ -239,7 +239,7 @@
 <div id="payroll-detail-overlay">
   <div class="payroll-detail-box">
     <div id="payroll-detail-content"></div>
-    <div class="payroll-detail-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarDetallePlanilla()">Cerrar</button><button class="btn btn-success btn-sm" onclick="imprimirDetallePlanilla()">Imprimir detalle</button></div>
+    <div class="payroll-detail-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarDetallePlanilla()">Cerrar</button><button class="btn btn-success btn-sm" id="payroll-detail-print-btn" onclick="imprimirDetallePlanilla()">Imprimir detalle</button></div>
   </div>
 </div>
 
