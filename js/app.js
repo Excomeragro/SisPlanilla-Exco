@@ -3,6 +3,7 @@ const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
+const PAYROLL_CALC_VERSION = 2;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
   { key: 'lunes', label: 'Lunes' },
@@ -75,7 +76,7 @@ function normalizarPlanilla(p) {
   const hDomingo = num(p.hDomingo ?? extraDias.domingo);
   const aplicarIsss = p.aplicarIsss !== undefined ? p.aplicarIsss !== false : normalizarEmpleado(emp).descontarIsss;
   const aplicarAfp = p.aplicarAfp !== undefined ? p.aplicarAfp !== false : normalizarEmpleado(emp).descontarAfp;
-  const calc = p.calc?.domingo !== undefined ? p.calc : calcularPago({ ...p, empleado: emp, extraDias, hExtra, hDomingo, aplicarIsss, aplicarAfp });
+  const calc = p.calc?.version === PAYROLL_CALC_VERSION ? p.calc : calcularPago({ ...p, empleado: emp, extraDias, hExtra, hDomingo, aplicarIsss, aplicarAfp });
   return {
     id: p.id || uid(),
     empleadoId: p.empleadoId || emp.id || '',
@@ -308,7 +309,7 @@ function calcularPago(d) {
   const extra = horasExtraLaboral * salario * 2;
   const domingo = horasDomingo * salario * 1.5;
   const septimo = num(d.hSeptimo) * salario;
-  const asueto = num(d.hAsueto) * salario * 2;
+  const asueto = num(d.hAsueto) * salario;
   const otrosIngresos = num(d.otrosIngresos);
   const devengado = ord + extra + domingo + septimo + asueto + otrosIngresos;
   const aplicarIsss = d.aplicarIsss !== undefined ? !!d.aplicarIsss : d.empleado?.descontarIsss !== false;
@@ -322,6 +323,7 @@ function calcularPago(d) {
   const otrosDescuentos = red(d.otrosDescuentos);
   const descuentos = isss + afp + renta + prestamos + otrosDescuentos;
   return {
+    version: PAYROLL_CALC_VERSION,
     ord: red(ord), extra: red(extra), domingo: red(domingo), septimo: red(septimo), asueto: red(asueto), otrosIngresos: red(otrosIngresos),
     devengado: red(devengado), isss, afp, rentaSugerida: red(rentaSugerida), renta,
     prestamos, otrosDescuentos, descuentos: red(descuentos), neto: red(devengado - descuentos)
