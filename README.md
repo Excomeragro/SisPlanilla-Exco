@@ -16,6 +16,7 @@ Ese es el archivo que debe abrirse en el navegador y el que GitHub Pages usará 
 - `js/initial-data.js`: datos iniciales embebidos para modo local.
 - `js/supabase-adapter.js`: conexión, acceso y sincronización con Supabase.
 - `js/supabase-config.public.js`: URL y llave pública del proyecto Supabase.
+- `js/vendor/supabase.min.js`: librería local de Supabase para evitar bloqueos del navegador.
 - `assets/`: logo e icono.
 - `supabase/schema.sql`: tablas iniciales para Supabase.
 - `legacy/SisPlanilla Exco.full.html`: respaldo del archivo único anterior.
