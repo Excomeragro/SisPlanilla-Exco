@@ -225,16 +225,19 @@ function programarGuardadoSupabase() {
 }
 
 async function guardarEstadoEnSupabase() {
-  if (!supabaseConectado || !supabaseUsuario) return;
+  if (!supabaseConectado || !supabaseUsuario) return false;
   const adapter = window.SisPlanillaSupabaseAdapter;
   try {
     actualizarEstadoSupabaseUI('Sincronizando...', 'blue');
     ultimoEstadoEnviado = JSON.stringify(state);
     await adapter.saveAll(state);
     actualizarEstadoSupabaseUI('En línea', 'green');
+    return true;
   } catch (error) {
     console.error(error);
+    supabaseConectado = false;
     actualizarEstadoSupabaseUI('Sin conexión', 'red');
+    return false;
   }
 }
 
@@ -357,8 +360,31 @@ async function cerrarSesionSupabase() {
 
 async function subirDatosLocalesSupabase() {
   if (!supabaseUsuario) return toast('Primero inicia sesión.');
-  await guardarEstadoEnSupabase();
-  if (supabaseConectado) toast('Datos guardados en la nube.');
+  const guardado = await guardarEstadoEnSupabase();
+  if (guardado) toast('Datos guardados en la nube.');
+}
+
+async function sincronizarAhoraSupabase() {
+  const boton = document.getElementById('sidebar-sync-btn');
+  const adapter = window.SisPlanillaSupabaseAdapter;
+  if (!adapter?.isEnabled()) {
+    showTab('ajustes');
+    return toast('Supabase todavía no está configurado.');
+  }
+  if (!supabaseUsuario) {
+    showTab('ajustes');
+    return toast('Inicia sesión para sincronizar.');
+  }
+  boton.disabled = true;
+  boton.classList.add('syncing');
+  try {
+    if (!supabaseConectado) await conectarUsuarioSupabase(supabaseUsuario);
+    const guardado = await guardarEstadoEnSupabase();
+    toast(guardado ? 'Sincronizado' : 'No se pudo sincronizar.', 3500);
+  } finally {
+    boton.disabled = false;
+    boton.classList.remove('syncing');
+  }
 }
 
 async function descargarDatosSupabase() {

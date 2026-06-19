@@ -101,6 +101,8 @@
   .sidebar-btn:hover { background: rgba(255,255,255,.04); color: #E2E8F0; }
   .sidebar-btn.active { background: rgba(59,130,246,.12); color: #60A5FA; border-left-color: var(--blue-lt); }
   .sidebar-btn svg { opacity: .75; flex-shrink: 0; }
+  .sidebar-btn.syncing svg { animation: sync-spin .8s linear infinite; }
+  @keyframes sync-spin { to { transform: rotate(360deg); } }
   .sidebar-stats { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
   .stat-card {
     background: rgba(255,255,255,.04);
