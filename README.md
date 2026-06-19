@@ -14,8 +14,8 @@ Ese es el archivo que debe abrirse en el navegador y el que GitHub Pages usará 
 - `css/styles.css`: estilos de la interfaz y boleta impresa.
 - `js/app.js`: lógica principal del sistema.
 - `js/initial-data.js`: datos iniciales embebidos para modo local.
-- `js/supabase-adapter.js`: punto de conexión preparado para Supabase.
-- `js/supabase-config.example.js`: plantilla de configuración de Supabase.
+- `js/supabase-adapter.js`: conexión, acceso y sincronización con Supabase.
+- `js/supabase-config.public.js`: URL y llave pública del proyecto Supabase.
 - `assets/`: logo e icono.
 - `supabase/schema.sql`: tablas iniciales para Supabase.
 - `legacy/SisPlanilla Exco.full.html`: respaldo del archivo único anterior.
@@ -24,18 +24,19 @@ Ese es el archivo que debe abrirse en el navegador y el que GitHub Pages usará 
 
 Abre `index.html` en el navegador.
 
-Por ahora los datos se guardan en el navegador con `localStorage`. Para respaldarlos, usa la pestaña `Ajustes` y exporta JSON.
+Los datos siempre se guardan en el navegador. Al conectar Supabase también se guardan automáticamente en la nube y se actualizan en los equipos que usen la misma cuenta.
 
 ## Subir actualizaciones a GitHub
 
 Abre `SUBIR_A_GITHUB.bat`. El archivo guarda los cambios y los sube a la rama `main` del repositorio de SisPlanilla Exco. La primera vez, GitHub puede solicitar iniciar sesión.
 
-## Preparación para Supabase
+## Activar Supabase
 
 1. Crear un proyecto en Supabase.
-2. Ejecutar `supabase/schema.sql` en el SQL Editor.
-3. Copiar `js/supabase-config.example.js` como `js/supabase-config.js`.
-4. Colocar la URL y `anonKey` del proyecto.
-5. Conectar `js/app.js` al adaptador de Supabase en la siguiente etapa.
+2. Abrir `SQL Editor`, pegar todo el contenido de `supabase/schema.sql` y ejecutarlo.
+3. Abrir `Project Settings > API` y copiar la URL del proyecto y la llave `anon` o `publishable`.
+4. Colocar esos dos valores en `js/supabase-config.public.js` y cambiar `enabled` a `true`.
+5. Subir la actualización con `SUBIR_A_GITHUB.bat`.
+6. En SisPlanilla, abrir `Ajustes > Nube Supabase` y crear una cuenta o iniciar sesión.
 
-`js/supabase-config.js` está en `.gitignore` para evitar subir llaves a GitHub.
+La llave `anon` es pública y se protege con Auth y RLS. Nunca colocar una llave `service_role` en el proyecto ni en GitHub.

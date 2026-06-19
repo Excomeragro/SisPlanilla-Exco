@@ -18,6 +18,12 @@ let state = cargarEstado();
 let empleadoEditId = null;
 let planillaEditId = null;
 let ajustesPlanillaMasiva = {};
+let supabaseUsuario = null;
+let supabaseConectado = false;
+let aplicandoEstadoRemoto = false;
+let guardadoSupabaseTimer = null;
+let ultimoEstadoEnviado = '';
+let conexionSupabaseId = 0;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
@@ -180,7 +186,186 @@ function guardarEstado(mostrarAviso = true) {
   sincronizarBoletasConPlanillas();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
   renderTodo();
+  programarGuardadoSupabase();
   if (mostrarAviso) toast('Guardado');
+}
+
+function actualizarEstadoSupabaseUI(texto, tipo = 'amber') {
+  const estado = document.getElementById('supabase-status');
+  const login = document.getElementById('supabase-login-panel');
+  const sesion = document.getElementById('supabase-session-panel');
+  const usuario = document.getElementById('supabase-user');
+  if (estado) {
+    estado.textContent = texto;
+    estado.className = 'badge badge-' + tipo;
+  }
+  if (login) login.hidden = !!supabaseUsuario;
+  if (sesion) sesion.hidden = !supabaseUsuario;
+  if (usuario) usuario.textContent = supabaseUsuario?.email || '';
+}
+
+function guardarEstadoLocalSinSincronizar() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  renderTodo();
+}
+
+function aplicarEstadoDesdeSupabase(datos) {
+  if (!datos || typeof datos !== 'object') return;
+  aplicandoEstadoRemoto = true;
+  state = normalizarEstado(datos);
+  ultimoEstadoEnviado = JSON.stringify(state);
+  guardarEstadoLocalSinSincronizar();
+  aplicandoEstadoRemoto = false;
+}
+
+function programarGuardadoSupabase() {
+  if (!supabaseConectado || !supabaseUsuario || aplicandoEstadoRemoto) return;
+  clearTimeout(guardadoSupabaseTimer);
+  guardadoSupabaseTimer = setTimeout(guardarEstadoEnSupabase, 600);
+}
+
+async function guardarEstadoEnSupabase() {
+  if (!supabaseConectado || !supabaseUsuario) return;
+  const adapter = window.SisPlanillaSupabaseAdapter;
+  try {
+    actualizarEstadoSupabaseUI('Sincronizando...', 'blue');
+    ultimoEstadoEnviado = JSON.stringify(state);
+    await adapter.saveAll(state);
+    actualizarEstadoSupabaseUI('En línea', 'green');
+  } catch (error) {
+    console.error(error);
+    actualizarEstadoSupabaseUI('Sin conexión', 'red');
+  }
+}
+
+async function conectarUsuarioSupabase(usuario) {
+  if (!usuario) return;
+  if (supabaseUsuario?.id === usuario.id && supabaseConectado) return;
+  const intento = ++conexionSupabaseId;
+  const adapter = window.SisPlanillaSupabaseAdapter;
+  supabaseUsuario = usuario;
+  supabaseConectado = true;
+  actualizarEstadoSupabaseUI('Conectando...', 'blue');
+  try {
+    const remoto = await adapter.loadAll();
+    if (intento !== conexionSupabaseId) return;
+    if (remoto?.data) aplicarEstadoDesdeSupabase(remoto.data);
+    else await adapter.saveAll(state);
+    await adapter.subscribe(datos => {
+      const recibido = JSON.stringify(normalizarEstado(datos));
+      if (recibido === ultimoEstadoEnviado) return;
+      aplicarEstadoDesdeSupabase(datos);
+      actualizarEstadoSupabaseUI('En línea', 'green');
+    });
+    actualizarEstadoSupabaseUI('En línea', 'green');
+  } catch (error) {
+    console.error(error);
+    supabaseConectado = false;
+    actualizarEstadoSupabaseUI('Error de conexión', 'red');
+    toast('No se pudo conectar con Supabase.');
+  }
+}
+
+async function manejarCambioSesionSupabase(usuario) {
+  if (usuario) {
+    await conectarUsuarioSupabase(usuario);
+    return;
+  }
+  conexionSupabaseId++;
+  clearTimeout(guardadoSupabaseTimer);
+  supabaseUsuario = null;
+  supabaseConectado = false;
+  actualizarEstadoSupabaseUI('Sin sesión', 'amber');
+}
+
+async function inicializarSupabase() {
+  const adapter = window.SisPlanillaSupabaseAdapter;
+  if (!adapter?.isEnabled()) {
+    actualizarEstadoSupabaseUI('Sin configurar', 'amber');
+    return;
+  }
+  actualizarEstadoSupabaseUI('Conectando...', 'blue');
+  try {
+    const usuario = await adapter.init(manejarCambioSesionSupabase);
+    if (usuario) await conectarUsuarioSupabase(usuario);
+    else actualizarEstadoSupabaseUI('Sin sesión', 'amber');
+  } catch (error) {
+    console.error(error);
+    actualizarEstadoSupabaseUI('Error de conexión', 'red');
+  }
+}
+
+function credencialesSupabase() {
+  return {
+    email: document.getElementById('supabase-email')?.value.trim() || '',
+    password: document.getElementById('supabase-password')?.value || ''
+  };
+}
+
+async function iniciarSesionSupabase() {
+  const { email, password } = credencialesSupabase();
+  if (!email || !password) return toast('Escribe el correo y la contraseña.');
+  try {
+    actualizarEstadoSupabaseUI('Conectando...', 'blue');
+    const usuario = await window.SisPlanillaSupabaseAdapter.signIn(email, password);
+    await conectarUsuarioSupabase(usuario);
+    document.getElementById('supabase-password').value = '';
+    toast('Sesión iniciada.');
+  } catch (error) {
+    console.error(error);
+    actualizarEstadoSupabaseUI('No conectado', 'red');
+    toast('No se pudo iniciar sesión. Revisa tus datos.');
+  }
+}
+
+async function crearCuentaSupabase() {
+  const { email, password } = credencialesSupabase();
+  if (!email || password.length < 6) return toast('Escribe un correo y una contraseña de al menos 6 caracteres.');
+  try {
+    const resultado = await window.SisPlanillaSupabaseAdapter.signUp(email, password);
+    if (resultado.session) {
+      await conectarUsuarioSupabase(resultado.user);
+      toast('Cuenta creada y conectada.');
+    } else {
+      actualizarEstadoSupabaseUI('Confirma tu correo', 'amber');
+      toast('Cuenta creada. Confirma el correo para entrar.', 4500);
+    }
+    document.getElementById('supabase-password').value = '';
+  } catch (error) {
+    console.error(error);
+    toast('No se pudo crear la cuenta.');
+  }
+}
+
+async function cerrarSesionSupabase() {
+  try {
+    await window.SisPlanillaSupabaseAdapter.signOut();
+    await manejarCambioSesionSupabase(null);
+    toast('Sesión cerrada.');
+  } catch (error) {
+    console.error(error);
+    toast('No se pudo cerrar la sesión.');
+  }
+}
+
+async function subirDatosLocalesSupabase() {
+  if (!supabaseUsuario) return toast('Primero inicia sesión.');
+  await guardarEstadoEnSupabase();
+  if (supabaseConectado) toast('Datos guardados en la nube.');
+}
+
+async function descargarDatosSupabase() {
+  if (!supabaseUsuario) return toast('Primero inicia sesión.');
+  try {
+    const remoto = await window.SisPlanillaSupabaseAdapter.loadAll();
+    if (!remoto?.data) return toast('Todavía no hay datos guardados en la nube.');
+    aplicarEstadoDesdeSupabase(remoto.data);
+    actualizarEstadoSupabaseUI('En línea', 'green');
+    toast('Datos recuperados de la nube.');
+  } catch (error) {
+    console.error(error);
+    toast('No se pudieron recuperar los datos.');
+  }
 }
 function generarHtmlConDatos(datos) {
   const json = JSON.stringify(datos).replace(/</g, '\\u003c');
@@ -1393,3 +1578,4 @@ setSemanaActual();
 setSemanaMasivaActual();
 toggleFechaSalida();
 guardarEstado(false);
+inicializarSupabase();

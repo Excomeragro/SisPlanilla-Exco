@@ -1,75 +1,65 @@
--- Esquema inicial para SisPlanilla Exco en Supabase.
--- Ejecutar en Supabase SQL Editor cuando se vaya a activar el guardado en nube.
+-- SisPlanilla Exco: estado privado por usuario y sincronización en tiempo real.
+-- Ejecutar completo en Supabase > SQL Editor.
 
-create table if not exists empleados (
-  id uuid primary key default gen_random_uuid(),
-  nombre text not null,
-  dui text,
-  telefono text,
-  direccion text,
-  fecha_ingreso date,
-  cargo text,
-  departamento text,
-  salario_hora numeric(10, 2) not null default 0,
-  tipo_pago text default 'Semanal',
-  afp_institucion text default 'Confía',
-  contacto_nombre text,
-  contacto_telefono text,
-  contacto_parentesco text,
-  estado text not null default 'activo' check (estado in ('activo', 'inactivo')),
-  fecha_salida date,
-  created_at timestamptz not null default now(),
+create table if not exists public.sisplanilla_state (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  data jsonb not null default '{"empleados":[],"planillas":[],"historialPagos":[],"boletas":[]}'::jsonb,
   updated_at timestamptz not null default now()
 );
 
-create table if not exists planillas (
-  id uuid primary key default gen_random_uuid(),
-  empleado_id uuid references empleados(id),
-  empleado_snapshot jsonb not null default '{}'::jsonb,
-  fecha_registro date not null default current_date,
-  fecha_inicio date not null,
-  fecha_fin date not null,
-  h_ordinarias numeric(10, 2) not null default 0,
-  extra_dia text,
-  h_extra numeric(10, 2) not null default 0,
-  h_septimo numeric(10, 2) not null default 0,
-  h_asueto numeric(10, 2) not null default 0,
-  otros_ingresos numeric(10, 2) not null default 0,
-  prestamos numeric(10, 2) not null default 0,
-  otros_descuentos numeric(10, 2) not null default 0,
-  aplicar_renta boolean not null default false,
-  calc jsonb not null default '{}'::jsonb,
-  boleta_generada boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+alter table public.sisplanilla_state enable row level security;
 
-create table if not exists historial_pagos (
-  id uuid primary key default gen_random_uuid(),
-  empleado_id uuid references empleados(id),
-  empleado text not null,
-  fecha date not null default current_date,
-  periodo text,
-  devengado numeric(10, 2) not null default 0,
-  isss numeric(10, 2) not null default 0,
-  afp numeric(10, 2) not null default 0,
-  renta numeric(10, 2) not null default 0,
-  otros_descuentos numeric(10, 2) not null default 0,
-  descuentos numeric(10, 2) not null default 0,
-  neto numeric(10, 2) not null default 0,
-  created_at timestamptz not null default now()
-);
+drop policy if exists "sisplanilla_select_own" on public.sisplanilla_state;
+drop policy if exists "sisplanilla_insert_own" on public.sisplanilla_state;
+drop policy if exists "sisplanilla_update_own" on public.sisplanilla_state;
+drop policy if exists "sisplanilla_delete_own" on public.sisplanilla_state;
 
-create table if not exists boletas (
-  id uuid primary key default gen_random_uuid(),
-  planilla_id uuid references planillas(id),
-  empleado_id uuid references empleados(id),
-  empleado text not null,
-  fecha date not null default current_date,
-  periodo text,
-  devengado numeric(10, 2) not null default 0,
-  descuentos numeric(10, 2) not null default 0,
-  neto numeric(10, 2) not null default 0,
-  data jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
+create policy "sisplanilla_select_own"
+on public.sisplanilla_state for select
+to authenticated
+using (auth.uid() = user_id);
+
+create policy "sisplanilla_insert_own"
+on public.sisplanilla_state for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "sisplanilla_update_own"
+on public.sisplanilla_state for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "sisplanilla_delete_own"
+on public.sisplanilla_state for delete
+to authenticated
+using (auth.uid() = user_id);
+
+revoke all on table public.sisplanilla_state from anon;
+grant select, insert, update, delete on table public.sisplanilla_state to authenticated;
+
+-- Si se ejecutó el esquema anterior, cerrar su acceso hasta migrarlo o eliminarlo.
+do $$
+declare
+  old_table text;
+begin
+  foreach old_table in array array['empleados','planillas','historial_pagos','boletas'] loop
+    if to_regclass('public.' || old_table) is not null then
+      execute format('alter table public.%I enable row level security', old_table);
+      execute format('revoke all on table public.%I from anon, authenticated', old_table);
+    end if;
+  end loop;
+end $$;
+
+-- Activar la tabla en Realtime una sola vez.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'sisplanilla_state'
+  ) then
+    alter publication supabase_realtime add table public.sisplanilla_state;
+  end if;
+end $$;

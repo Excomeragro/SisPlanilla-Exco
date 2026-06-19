@@ -255,6 +255,39 @@
 
     <section class="view" id="view-ajustes">
       <div class="page-head"><div><h1>Ajustes</h1><p>Respalda o recupera la información del sistema cuando lo necesites.</p></div></div>
+      <div class="card cloud-card">
+        <div class="card-header">
+          <h2>Nube Supabase</h2>
+          <span class="badge badge-amber" id="supabase-status">Sin configurar</span>
+        </div>
+        <div class="card-body">
+          <div id="supabase-login-panel">
+            <div class="cloud-note">Inicia sesión para guardar cada cambio automáticamente y mantener la misma información en todos tus equipos.</div>
+            <div class="form-grid">
+              <div class="form-group span2">
+                <label for="supabase-email">Correo</label>
+                <input id="supabase-email" type="email" autocomplete="username" placeholder="correo@empresa.com">
+              </div>
+              <div class="form-group span2">
+                <label for="supabase-password">Contraseña</label>
+                <input id="supabase-password" type="password" minlength="6" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="iniciarSesionSupabase()">Iniciar sesión</button>
+              <button class="btn btn-ghost" onclick="crearCuentaSupabase()">Crear cuenta</button>
+            </div>
+          </div>
+          <div id="supabase-session-panel" hidden>
+            <div class="cloud-user"><span>Cuenta conectada</span><strong id="supabase-user"></strong></div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="subirDatosLocalesSupabase()">Guardar datos actuales en la nube</button>
+              <button class="btn btn-ghost" onclick="descargarDatosSupabase()">Recuperar datos de la nube</button>
+              <button class="btn btn-danger" onclick="cerrarSesionSupabase()">Cerrar sesión</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header"><h2>Respaldo de datos</h2></div>
         <div class="card-body">
@@ -314,6 +347,8 @@
 
 <script src="js/initial-data.js"></script>
 <script src="js/initial-data.local.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.public.js"></script>
 <script src="js/supabase-adapter.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>

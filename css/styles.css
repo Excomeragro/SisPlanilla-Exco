@@ -139,6 +139,20 @@
   }
   .card-header h2 { font-size: 14px; font-weight: 700; flex: 1; }
   .card-body { padding: 20px; }
+  .cloud-card { margin-bottom: 16px; }
+  .cloud-note { color: var(--muted); line-height: 1.45; margin-bottom: 16px; }
+  .cloud-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 6px;
+  }
+  .cloud-user span { color: var(--muted); }
+  .cloud-user strong { overflow-wrap: anywhere; text-align: right; }
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(220px, 1fr));
