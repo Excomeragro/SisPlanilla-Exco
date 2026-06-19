@@ -589,9 +589,12 @@
     .receipt-actions { display:none !important; }
     @page { size: letter portrait; margin: 8mm; }
     .receipt-box { box-shadow:none !important; max-width:100% !important; max-height:none !important; overflow:visible !important; border-radius:0 !important; }
-    .receipt-pages { gap: 2mm !important; padding: 0 !important; }
-    .receipt-copy { height: auto !important; min-height: 0 !important; padding-bottom: 2mm !important; overflow: visible !important; transform: none !important; width: 100% !important; margin: 0 !important; }
+    .receipt-pages { display:grid !important; grid-template-rows:131.5mm 131.5mm !important; gap:0 !important; height:263mm !important; padding:0 !important; }
+    .receipt-copy { display:flex !important; flex-direction:column !important; height:131.5mm !important; min-height:131.5mm !important; padding:0 0 1.5mm !important; overflow:hidden !important; transform:none !important; width:100% !important; margin:0 !important; }
     .receipt-copy:first-child { border-bottom: 1px dashed #555; }
+    .receipt-copy .receipt-body { display:flex !important; flex:1 !important; flex-direction:column !important; }
+    .receipt-copy .receipt-frame { display:flex !important; flex:1 !important; flex-direction:column !important; }
+    .receipt-copy .receipt-columns { flex:1 !important; }
     .receipt-header { padding: 5px 10px 4px !important; }
     .receipt-company { font-size: 18px !important; }
     .receipt-subtitle { font-size: 11px !important; margin-top: 2px !important; }
