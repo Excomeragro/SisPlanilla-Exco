@@ -195,13 +195,23 @@ function actualizarEstadoSupabaseUI(texto, tipo = 'amber') {
   const login = document.getElementById('supabase-login-panel');
   const sesion = document.getElementById('supabase-session-panel');
   const usuario = document.getElementById('supabase-user');
+  const miUsuario = document.getElementById('supabase-mi-usuario');
   if (estado) {
     estado.textContent = texto;
     estado.className = 'badge badge-' + tipo;
   }
   if (login) login.hidden = !!supabaseUsuario;
   if (sesion) sesion.hidden = !supabaseUsuario;
-  if (usuario) usuario.textContent = supabaseUsuario?.user_metadata?.username || supabaseUsuario?.email?.split('@')[0] || '';
+  const nombreUsuario = supabaseUsuario?.user_metadata?.username || supabaseUsuario?.email?.split('@')[0] || '';
+  if (usuario) usuario.textContent = nombreUsuario;
+  if (miUsuario && supabaseUsuario && miUsuario.dataset.userId !== supabaseUsuario.id) {
+    miUsuario.value = nombreUsuario;
+    miUsuario.dataset.userId = supabaseUsuario.id;
+  }
+  if (miUsuario && !supabaseUsuario) {
+    miUsuario.value = '';
+    delete miUsuario.dataset.userId;
+  }
 }
 
 function guardarEstadoLocalSinSincronizar() {
@@ -261,6 +271,7 @@ async function conectarUsuarioSupabase(usuario) {
       actualizarEstadoSupabaseUI('En línea', 'green');
     });
     actualizarEstadoSupabaseUI('En línea', 'green');
+    cargarUsuariosSupabase();
   } catch (error) {
     console.error(error);
     supabaseConectado = false;
@@ -279,6 +290,8 @@ async function manejarCambioSesionSupabase(usuario) {
   supabaseUsuario = null;
   supabaseConectado = false;
   actualizarEstadoSupabaseUI('Sin sesión', 'amber');
+  const lista = document.getElementById('supabase-users-list');
+  if (lista) lista.innerHTML = '';
 }
 
 async function inicializarSupabase() {
@@ -341,6 +354,42 @@ async function crearUsuarioSupabase() {
     document.getElementById('supabase-nuevo-usuario').value = '';
     document.getElementById('supabase-nueva-password').value = '';
     toast('Usuario agregado.');
+    cargarUsuariosSupabase();
+  } catch (error) {
+    console.error(error);
+    toast(mensajeErrorSupabase(error), 5000);
+  }
+}
+
+async function cargarUsuariosSupabase() {
+  const lista = document.getElementById('supabase-users-list');
+  if (!lista || !supabaseUsuario) return;
+  lista.innerHTML = '<div class="table-empty">Cargando usuarios...</div>';
+  try {
+    const usuarios = await window.SisPlanillaSupabaseAdapter.listUsers();
+    lista.innerHTML = usuarios.length
+      ? usuarios.map(usuario => `<div class="cloud-user-row"><strong>${esc(usuario.username)}</strong>${usuario.current ? '<span class="badge badge-green">Tu usuario</span>' : '<span class="badge badge-blue">Activo</span>'}</div>`).join('')
+      : '<div class="table-empty">No hay usuarios agregados.</div>';
+  } catch (error) {
+    console.error(error);
+    lista.innerHTML = '<div class="table-empty">No se pudo cargar la lista.</div>';
+    toast(mensajeErrorSupabase(error), 5000);
+  }
+}
+
+async function actualizarMiUsuarioSupabase() {
+  const username = document.getElementById('supabase-mi-usuario')?.value.trim() || '';
+  const password = document.getElementById('supabase-mi-password')?.value || '';
+  if (!username) return toast('Escribe tu nombre de usuario.');
+  if (password && password.length < 8) return toast('La contraseña debe tener al menos 8 caracteres.');
+  try {
+    await window.SisPlanillaSupabaseAdapter.updateCurrentUser(username, password);
+    await window.SisPlanillaSupabaseAdapter.signOut();
+    await manejarCambioSesionSupabase(null);
+    document.getElementById('supabase-usuario').value = username;
+    document.getElementById('supabase-password').value = '';
+    document.getElementById('supabase-mi-password').value = '';
+    toast('Acceso actualizado. Inicia sesión nuevamente.', 5000);
   } catch (error) {
     console.error(error);
     toast(mensajeErrorSupabase(error), 5000);
@@ -604,6 +653,7 @@ function showTab(tab) {
   if (tab === 'historial') renderHistorial();
   if (tab === 'boletas') { renderBoletasDisponibles(); renderBoletasGeneradas(); }
   if (tab === 'planilla-masiva') renderPlanillaMasiva();
+  if (tab === 'ajustes' && supabaseUsuario) cargarUsuariosSupabase();
 }
 function prepararVistaPlanillaMasiva() {
   const card = document.getElementById('planilla-masiva-card');

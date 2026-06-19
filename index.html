@@ -288,6 +288,21 @@
               <button class="btn btn-ghost" onclick="descargarDatosSupabase()">Recuperar datos de la nube</button>
               <button class="btn btn-danger" onclick="cerrarSesionSupabase()">Cerrar sesión</button>
             </div>
+            <div class="form-divider">Usuarios agregados</div>
+            <div class="cloud-users-head"><span>Usuarios con acceso</span><button class="btn btn-ghost btn-sm" onclick="cargarUsuariosSupabase()">Actualizar</button></div>
+            <div class="cloud-users-list" id="supabase-users-list"><div class="table-empty">Cargando usuarios...</div></div>
+            <div class="form-divider">Mi acceso</div>
+            <div class="form-grid">
+              <div class="form-group span2">
+                <label for="supabase-mi-usuario">Cambiar mi usuario</label>
+                <input id="supabase-mi-usuario" type="text" autocomplete="username">
+              </div>
+              <div class="form-group span2">
+                <label for="supabase-mi-password">Cambiar mi contraseña</label>
+                <input id="supabase-mi-password" type="password" minlength="8" autocomplete="new-password" placeholder="Déjala vacía para conservarla">
+              </div>
+            </div>
+            <div class="btn-row"><button class="btn btn-primary" onclick="actualizarMiUsuarioSupabase()">Guardar mi acceso</button></div>
             <div class="form-divider">Agregar otro usuario</div>
             <div class="form-grid">
               <div class="form-group span2">

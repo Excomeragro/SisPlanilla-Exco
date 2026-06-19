@@ -46,14 +46,32 @@
     return data.user;
   }
 
-  async function createUser(username, password) {
+  async function invokeUserFunction(body) {
     if (!client) throw new Error('Supabase no está configurado.');
-    if (!currentUser) throw new Error('Debes iniciar sesión para agregar usuarios.');
-    emailInterno(username);
-    const { data, error } = await client.functions.invoke('create-user', { body: { username, password } });
-    if (error) throw error;
+    if (!currentUser) throw new Error('Debes iniciar sesión.');
+    const { data, error } = await client.functions.invoke('create-user', { body });
+    if (error) {
+      let detail = '';
+      try { detail = (await error.context?.json())?.error || ''; } catch (_error) {}
+      throw new Error(detail || error.message);
+    }
     if (data?.error) throw new Error(data.error);
     return data;
+  }
+
+  async function createUser(username, password) {
+    emailInterno(username);
+    return invokeUserFunction({ action: 'create', username, password });
+  }
+
+  async function listUsers() {
+    const data = await invokeUserFunction({ action: 'list' });
+    return data.users || [];
+  }
+
+  async function updateCurrentUser(username, password) {
+    emailInterno(username);
+    return invokeUserFunction({ action: 'update-self', username, password });
   }
 
   async function signOut() {
@@ -113,6 +131,8 @@
     init,
     signIn,
     createUser,
+    listUsers,
+    updateCurrentUser,
     signOut,
     loadAll,
     saveAll,

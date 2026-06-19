@@ -155,6 +155,12 @@
   }
   .cloud-user span { color: var(--muted); }
   .cloud-user strong { overflow-wrap: anywhere; text-align: right; }
+  .cloud-users-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .cloud-users-head span { font-weight:700; }
+  .cloud-users-list { border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .cloud-user-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border-bottom:1px solid var(--border); }
+  .cloud-user-row:last-child { border-bottom:0; }
+  .cloud-user-row strong { overflow-wrap:anywhere; }
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(220px, 1fr));
