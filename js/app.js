@@ -201,7 +201,7 @@ function actualizarEstadoSupabaseUI(texto, tipo = 'amber') {
   }
   if (login) login.hidden = !!supabaseUsuario;
   if (sesion) sesion.hidden = !supabaseUsuario;
-  if (usuario) usuario.textContent = supabaseUsuario?.email || '';
+  if (usuario) usuario.textContent = supabaseUsuario?.user_metadata?.username || supabaseUsuario?.email?.split('@')[0] || '';
 }
 
 function guardarEstadoLocalSinSincronizar() {
@@ -297,16 +297,15 @@ async function inicializarSupabase() {
 
 function credencialesSupabase() {
   return {
-    email: document.getElementById('supabase-email')?.value.trim() || '',
+    username: document.getElementById('supabase-usuario')?.value.trim() || '',
     password: document.getElementById('supabase-password')?.value || ''
   };
 }
 
 function mensajeErrorSupabase(error) {
   const mensaje = String(error?.message || '').toLowerCase();
-  if (mensaje.includes('already registered') || mensaje.includes('already been registered')) return 'Ese correo ya está registrado. Usa Iniciar sesión.';
-  if (mensaje.includes('invalid login credentials')) return 'Correo o contraseña incorrectos.';
-  if (mensaje.includes('email not confirmed')) return 'Debes confirmar el correo antes de iniciar sesión.';
+  if (mensaje.includes('already registered') || mensaje.includes('already been registered')) return 'Ese usuario ya está registrado.';
+  if (mensaje.includes('invalid login credentials')) return 'Usuario o contraseña incorrectos.';
   if (mensaje.includes('password') && (mensaje.includes('least') || mensaje.includes('weak'))) return 'La contraseña debe tener al menos 6 caracteres.';
   if (mensaje.includes('invalid') && mensaje.includes('email')) return 'El correo electrónico no es válido.';
   if (mensaje.includes('rate limit') || mensaje.includes('security purposes')) return 'Espera unos minutos antes de intentarlo nuevamente.';
@@ -315,11 +314,11 @@ function mensajeErrorSupabase(error) {
 }
 
 async function iniciarSesionSupabase() {
-  const { email, password } = credencialesSupabase();
-  if (!email || !password) return toast('Escribe el correo y la contraseña.');
+  const { username, password } = credencialesSupabase();
+  if (!username || !password) return toast('Escribe el usuario y la contraseña.');
   try {
     actualizarEstadoSupabaseUI('Conectando...', 'blue');
-    const usuario = await window.SisPlanillaSupabaseAdapter.signIn(email, password);
+    const usuario = await window.SisPlanillaSupabaseAdapter.signIn(username, password);
     await conectarUsuarioSupabase(usuario);
     document.getElementById('supabase-password').value = '';
     toast('Sesión iniciada.');
@@ -330,25 +329,17 @@ async function iniciarSesionSupabase() {
   }
 }
 
-async function crearCuentaSupabase() {
-  const { email, password } = credencialesSupabase();
-  if (!email || password.length < 6) return toast('Escribe un correo y una contraseña de al menos 6 caracteres.');
+async function crearUsuarioSupabase() {
+  const username = document.getElementById('supabase-nuevo-usuario')?.value.trim() || '';
+  const password = document.getElementById('supabase-nueva-password')?.value || '';
+  if (!username || password.length < 8) return toast('Escribe un usuario y una contraseña de al menos 8 caracteres.');
   try {
-    const resultado = await window.SisPlanillaSupabaseAdapter.signUp(email, password);
-    if (resultado.user && Array.isArray(resultado.user.identities) && !resultado.user.identities.length) {
-      actualizarEstadoSupabaseUI('Correo registrado', 'amber');
-      toast('Ese correo ya está registrado. Usa Iniciar sesión.', 5000);
-    } else if (resultado.session) {
-      await conectarUsuarioSupabase(resultado.user);
-      toast('Cuenta creada y conectada.');
-    } else {
-      actualizarEstadoSupabaseUI('Confirma tu correo', 'amber');
-      toast('Cuenta creada. Confirma el correo para entrar.', 4500);
-    }
-    document.getElementById('supabase-password').value = '';
+    await window.SisPlanillaSupabaseAdapter.createUser(username, password);
+    document.getElementById('supabase-nuevo-usuario').value = '';
+    document.getElementById('supabase-nueva-password').value = '';
+    toast('Usuario agregado.');
   } catch (error) {
     console.error(error);
-    actualizarEstadoSupabaseUI('No conectado', 'red');
     toast(mensajeErrorSupabase(error), 5000);
   }
 }

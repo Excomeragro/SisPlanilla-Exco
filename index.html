@@ -265,8 +265,8 @@
             <div class="cloud-note">Inicia sesión para guardar cada cambio automáticamente y mantener la misma información en todos tus equipos.</div>
             <div class="form-grid">
               <div class="form-group span2">
-                <label for="supabase-email">Correo</label>
-                <input id="supabase-email" type="email" autocomplete="username" placeholder="correo@empresa.com">
+                <label for="supabase-usuario">Usuario</label>
+                <input id="supabase-usuario" type="text" autocomplete="username" placeholder="Ejemplo: Skobar">
               </div>
               <div class="form-group span2">
                 <label for="supabase-password">Contraseña</label>
@@ -275,7 +275,6 @@
             </div>
             <div class="btn-row">
               <button class="btn btn-primary" onclick="iniciarSesionSupabase()">Iniciar sesión</button>
-              <button class="btn btn-ghost" onclick="crearCuentaSupabase()">Crear cuenta</button>
             </div>
           </div>
           <div id="supabase-session-panel" hidden>
@@ -285,6 +284,18 @@
               <button class="btn btn-ghost" onclick="descargarDatosSupabase()">Recuperar datos de la nube</button>
               <button class="btn btn-danger" onclick="cerrarSesionSupabase()">Cerrar sesión</button>
             </div>
+            <div class="form-divider">Agregar otro usuario</div>
+            <div class="form-grid">
+              <div class="form-group span2">
+                <label for="supabase-nuevo-usuario">Nuevo usuario</label>
+                <input id="supabase-nuevo-usuario" type="text" autocomplete="off" placeholder="Nombre de usuario">
+              </div>
+              <div class="form-group span2">
+                <label for="supabase-nueva-password">Nueva contraseña</label>
+                <input id="supabase-nueva-password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+              </div>
+            </div>
+            <div class="btn-row"><button class="btn btn-success" onclick="crearUsuarioSupabase()">Agregar usuario</button></div>
           </div>
         </div>
       </div>

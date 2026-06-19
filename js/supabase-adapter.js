@@ -13,6 +13,12 @@
     return !!(cfg.enabled && cfg.url && cfg.anonKey && !cfg.url.includes('TU-PROYECTO') && !cfg.anonKey.includes('TU_'));
   }
 
+  function emailInterno(username) {
+    const limpio = String(username || '').trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,32}$/.test(limpio)) throw new Error('El usuario debe tener entre 3 y 32 caracteres y no llevar espacios.');
+    return limpio + '@sisplanilla.local';
+  }
+
   async function init(onAuthChange) {
     if (!isEnabled()) return null;
     if (!window.supabase?.createClient) throw new Error('No se pudo cargar la librería de Supabase.');
@@ -31,25 +37,23 @@
     return currentUser;
   }
 
-  async function signIn(email, password) {
+  async function signIn(username, password) {
     if (!client) throw new Error('Supabase no está configurado.');
+    const email = emailInterno(username);
     const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
     currentUser = data.session?.user || null;
     return data.user;
   }
 
-  async function signUp(email, password) {
+  async function createUser(username, password) {
     if (!client) throw new Error('Supabase no está configurado.');
-    const redirectTo = window.location.origin + window.location.pathname;
-    const { data, error } = await client.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectTo }
-    });
+    if (!currentUser) throw new Error('Debes iniciar sesión para agregar usuarios.');
+    emailInterno(username);
+    const { data, error } = await client.functions.invoke('create-user', { body: { username, password } });
     if (error) throw error;
-    currentUser = data.session?.user || null;
-    return { user: data.user, session: data.session };
+    if (data?.error) throw new Error(data.error);
+    return data;
   }
 
   async function signOut() {
@@ -63,9 +67,9 @@
   async function loadAll() {
     if (!client || !currentUser) return null;
     const { data, error } = await client
-      .from('sisplanilla_state')
+      .from('sisplanilla_company_state')
       .select('data, updated_at')
-      .eq('user_id', currentUser.id)
+      .eq('workspace_id', 'exco')
       .maybeSingle();
     if (error) throw error;
     return data;
@@ -73,10 +77,10 @@
 
   async function saveAll(data) {
     if (!client || !currentUser) return null;
-    const row = { user_id: currentUser.id, data, updated_at: new Date().toISOString() };
+    const row = { workspace_id: 'exco', data, updated_at: new Date().toISOString() };
     const { data: saved, error } = await client
-      .from('sisplanilla_state')
-      .upsert(row, { onConflict: 'user_id' })
+      .from('sisplanilla_company_state')
+      .upsert(row, { onConflict: 'workspace_id' })
       .select('updated_at')
       .single();
     if (error) throw error;
@@ -87,12 +91,12 @@
     if (!client || !currentUser) return;
     await unsubscribe();
     realtimeChannel = client
-      .channel('sisplanilla-state-' + currentUser.id)
+      .channel('sisplanilla-company-state')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'sisplanilla_state',
-        filter: 'user_id=eq.' + currentUser.id
+        table: 'sisplanilla_company_state',
+        filter: 'workspace_id=eq.exco'
       }, payload => {
         if (payload.new?.data) onRemoteChange?.(payload.new.data, payload.new.updated_at);
       })
@@ -108,7 +112,7 @@
     isEnabled,
     init,
     signIn,
-    signUp,
+    createUser,
     signOut,
     loadAll,
     saveAll,

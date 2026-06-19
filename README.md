@@ -40,3 +40,11 @@ Abre `SUBIR_A_GITHUB.bat`. El archivo guarda los cambios y los sube a la rama `m
 6. En SisPlanilla, abrir `Ajustes > Nube Supabase` y crear una cuenta o iniciar sesión.
 
 La llave `anon` es pública y se protege con Auth y RLS. Nunca colocar una llave `service_role` en el proyecto ni en GitHub.
+
+## Usuarios de SisPlanilla
+
+- Ejecutar `supabase/enable-shared-users.sql` en el SQL Editor para activar la información compartida.
+- El acceso usa un nombre de usuario; internamente Supabase lo guarda como `usuario@sisplanilla.local`.
+- El primer usuario se crea en `Authentication > Users` con `Auto Confirm User` activado.
+- Desplegar `supabase/functions/create-user/index.ts` como la Edge Function `create-user`.
+- Después, cualquier usuario conectado puede agregar otros usuarios desde `Ajustes > Nube Supabase`.
