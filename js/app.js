@@ -1448,7 +1448,7 @@ function abrirDetallePlanilla() {
     return `<tr class="area-title-row"><th colspan="19">ÁREA: ${esc(area.toUpperCase())}</th></tr>${filas}${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}`;
   }).join('');
   const totalGeneral = totalesDetallePlanilla(planillasReporte);
-  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>$/Hora</th><th>Ord. D.</th><th>Extra D.</th><th>Extra N.</th><th>Desc. D.</th><th>Desc. N.</th><th>Sépt.</th><th>Asueto</th><th>As. Ext. D.</th><th>As. Ext. N.</th><th>Permiso h</th><th>Faltas d</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros</th><th>Neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>$/Hora</th><th>Ord. D.</th><th>Extra D.</th><th>Extra N.</th><th>Dom. D.</th><th>Dom. N.</th><th>Sépt.</th><th>Asueto</th><th>As. Ext. D.</th><th>As. Ext. N.</th><th>Permiso h</th><th>Faltas d</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros</th><th>Neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
   document.getElementById('payroll-detail-overlay').dataset.reportType = 'payroll';
   document.getElementById('payroll-detail-overlay').classList.add('open');
@@ -1513,6 +1513,12 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
       <span class="qty">${cantidad(0)}</span>
       <strong class="amount">${dinero(amount)}</strong>
     </div>`;
+  const incomeTotalLine = (label, amount) => `
+    <div class="paper-line income-total-line">
+      <strong class="label">${label}</strong>
+      <span class="qty"></span>
+      <strong class="amount">${dinero(amount)}</strong>
+    </div>`;
   return `
     <section class="receipt-copy${vacia ? ' blank-copy' : ''}">
       <div class="receipt-header">
@@ -1545,12 +1551,12 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${line('H. Ext. Asueto N.:', p?.hAsuetoExtraNocturna, c.asuetoExtraNocturna)}
                 ${asistenciaNota}
                 ${moneyLine('Incapacidad:', 0)}
-                ${line('Descanso laborado:', p?.hDomingo ?? p?.extraDias?.domingo, c.domingo)}
-                ${line('Descanso nocturno:', p?.hDomingoNocturno ?? p?.extraNocturnasDias?.domingo, c.domingoNocturno)}
+                ${line('Domingo laborado:', p?.hDomingo ?? p?.extraDias?.domingo, c.domingo)}
+                ${line('Domingo nocturno:', p?.hDomingoNocturno ?? p?.extraNocturnasDias?.domingo, c.domingoNocturno)}
+                ${incomeTotalLine('Sueldo Devengado:', c.devengado)}
               </div>
             </div>
             <div class="receipt-deductions-col">
-              <div class="paper-total-row devengado-row"><span>Sueldo Devengado:</span><strong>${dinero(c.devengado)}</strong></div>
               <div class="paper-section-title">DEDUCCIONES DE LEY:</div>
               <div>
                 ${deductionLine('Renta:', c.renta)}
