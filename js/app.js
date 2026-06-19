@@ -302,6 +302,18 @@ function credencialesSupabase() {
   };
 }
 
+function mensajeErrorSupabase(error) {
+  const mensaje = String(error?.message || '').toLowerCase();
+  if (mensaje.includes('already registered') || mensaje.includes('already been registered')) return 'Ese correo ya está registrado. Usa Iniciar sesión.';
+  if (mensaje.includes('invalid login credentials')) return 'Correo o contraseña incorrectos.';
+  if (mensaje.includes('email not confirmed')) return 'Debes confirmar el correo antes de iniciar sesión.';
+  if (mensaje.includes('password') && (mensaje.includes('least') || mensaje.includes('weak'))) return 'La contraseña debe tener al menos 6 caracteres.';
+  if (mensaje.includes('invalid') && mensaje.includes('email')) return 'El correo electrónico no es válido.';
+  if (mensaje.includes('rate limit') || mensaje.includes('security purposes')) return 'Espera unos minutos antes de intentarlo nuevamente.';
+  if (mensaje.includes('failed to fetch') || mensaje.includes('network')) return 'No se pudo conectar. Revisa Internet y vuelve a intentarlo.';
+  return error?.message ? 'Supabase: ' + error.message : 'No se pudo completar la operación.';
+}
+
 async function iniciarSesionSupabase() {
   const { email, password } = credencialesSupabase();
   if (!email || !password) return toast('Escribe el correo y la contraseña.');
@@ -314,7 +326,7 @@ async function iniciarSesionSupabase() {
   } catch (error) {
     console.error(error);
     actualizarEstadoSupabaseUI('No conectado', 'red');
-    toast('No se pudo iniciar sesión. Revisa tus datos.');
+    toast(mensajeErrorSupabase(error), 5000);
   }
 }
 
@@ -323,7 +335,10 @@ async function crearCuentaSupabase() {
   if (!email || password.length < 6) return toast('Escribe un correo y una contraseña de al menos 6 caracteres.');
   try {
     const resultado = await window.SisPlanillaSupabaseAdapter.signUp(email, password);
-    if (resultado.session) {
+    if (resultado.user && Array.isArray(resultado.user.identities) && !resultado.user.identities.length) {
+      actualizarEstadoSupabaseUI('Correo registrado', 'amber');
+      toast('Ese correo ya está registrado. Usa Iniciar sesión.', 5000);
+    } else if (resultado.session) {
       await conectarUsuarioSupabase(resultado.user);
       toast('Cuenta creada y conectada.');
     } else {
@@ -333,7 +348,8 @@ async function crearCuentaSupabase() {
     document.getElementById('supabase-password').value = '';
   } catch (error) {
     console.error(error);
-    toast('No se pudo crear la cuenta.');
+    actualizarEstadoSupabaseUI('No conectado', 'red');
+    toast(mensajeErrorSupabase(error), 5000);
   }
 }
 
