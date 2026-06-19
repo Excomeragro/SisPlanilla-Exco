@@ -523,8 +523,8 @@
   .paper-line.simple .label { text-align: right; padding-right: 3px; }
   .deduction-line { grid-template-columns: 170px 72px; max-width: 250px; margin-right: 54px; margin-left: auto; }
   .other-discounts-title { margin-top: 16px; }
-  .receipt-income-col { padding-top: 32px; }
-  .receipt-deductions-col { display: flex; flex-direction: column; min-height: 238px; }
+  .receipt-income-col { padding-top: 14px; }
+  .receipt-deductions-col { display: flex; flex-direction: column; min-height: 238px; padding-top: 14px; }
   .paper-total-row {
     border: 1px solid #222;
     margin-top: 6px;
@@ -609,8 +609,8 @@
     .paper-section-title { font-size: 11.5px !important; margin-bottom: 3px !important; }
     .paper-line { font-size: 11.5px !important; line-height: 1.2 !important; padding-top: .65mm !important; padding-bottom: .65mm !important; }
     .receipt-income-col .paper-line { line-height: 1.1 !important; padding-top: .35mm !important; padding-bottom: .35mm !important; }
-    .receipt-income-col { padding-top: 5mm !important; }
-    .receipt-deductions-col { min-height: 210px !important; }
+    .receipt-income-col { padding-top: 2.5mm !important; }
+    .receipt-deductions-col { min-height: 210px !important; padding-top: 2.5mm !important; }
     .other-discounts-title { margin-top: 10px !important; }
     .paper-total-row { padding: 6px 10px !important; font-size: 12px !important; }
     .devengado-row { padding:0 !important; margin:0 54px 8px auto !important; font-size:12px !important; }
