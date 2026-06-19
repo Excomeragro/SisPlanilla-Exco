@@ -603,6 +603,7 @@
     .receipt-columns { gap: 28px !important; padding-top: 2mm !important; padding-bottom: .5mm !important; }
     .paper-section-title { font-size: 11.5px !important; margin-bottom: 3px !important; }
     .paper-line { font-size: 11.5px !important; line-height: 1.2 !important; padding-top: .65mm !important; padding-bottom: .65mm !important; }
+    .receipt-income-col .paper-line { line-height: 1.1 !important; padding-top: .35mm !important; padding-bottom: .35mm !important; }
     .receipt-income-col { padding-top: 5mm !important; }
     .receipt-deductions-col { min-height: 210px !important; }
     .other-discounts-title { margin-top: 10px !important; }

@@ -116,11 +116,20 @@
               <label>Sábado extra<input class="zero-ref" type="number" id="m-extra-sabado" step="0.5" min="0" placeholder="0"></label>
               <label>Asueto laborado<input class="zero-ref" type="number" id="m-h-asueto" step="0.5" min="0" placeholder="0"></label>
               <label>Descanso laborado<input class="zero-ref" type="number" id="m-h-domingo" step="0.5" min="0" placeholder="0"></label>
+              <label>Lunes extra noct.<input class="zero-ref" type="number" id="m-extra-noct-lunes" step="0.5" min="0" placeholder="0"></label>
+              <label>Martes extra noct.<input class="zero-ref" type="number" id="m-extra-noct-martes" step="0.5" min="0" placeholder="0"></label>
+              <label>Miércoles extra noct.<input class="zero-ref" type="number" id="m-extra-noct-miercoles" step="0.5" min="0" placeholder="0"></label>
+              <label>Jueves extra noct.<input class="zero-ref" type="number" id="m-extra-noct-jueves" step="0.5" min="0" placeholder="0"></label>
+              <label>Viernes extra noct.<input class="zero-ref" type="number" id="m-extra-noct-viernes" step="0.5" min="0" placeholder="0"></label>
+              <label>Sábado extra noct.<input class="zero-ref" type="number" id="m-extra-noct-sabado" step="0.5" min="0" placeholder="0"></label>
+              <label>Descanso nocturno<input class="zero-ref" type="number" id="m-extra-noct-domingo" step="0.5" min="0" placeholder="0"></label>
+              <label>Extra diurna asueto<input class="zero-ref" type="number" id="m-asueto-extra-diurna" step="0.5" min="0" placeholder="0"></label>
+              <label>Extra nocturna asueto<input class="zero-ref" type="number" id="m-asueto-extra-nocturna" step="0.5" min="0" placeholder="0"></label>
             </div></div>
           </div>
           <div class="btn-row"><button class="btn btn-primary" onclick="guardarAjusteMasivo()">Agregar / actualizar horas</button><button class="btn btn-ghost" onclick="limpiarAjusteMasivo()">Limpiar ajuste</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Horas extra L-S</th><th>Días extra</th><th>Asueto</th><th>Descanso laborado</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="6"><div class="table-empty">Sin ajustes especiales.</div></td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="7"><div class="table-empty">Sin ajustes especiales.</div></td></tr></tbody></table></div>
         <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>
       </div>
       <div class="card">
@@ -148,9 +157,20 @@
                 <label>Sábado<input class="zero-ref" type="number" id="p-extra-sabado" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
                 <label>Descanso laborado (1.5×)<input class="zero-ref" type="number" id="p-extra-domingo" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
               </div></div>
-              <div class="form-group"><label>Pago descanso laborado 1.5×</label><input type="text" id="p-domingo-pago" readonly></div>
+              <div class="form-group full"><label>Horas extra nocturnas por día (2.25×; domingo 1.75×)</label><div class="extra-days">
+                <label>Lunes<input class="zero-ref" type="number" id="p-extra-noct-lunes" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Martes<input class="zero-ref" type="number" id="p-extra-noct-martes" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Miércoles<input class="zero-ref" type="number" id="p-extra-noct-miercoles" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Jueves<input class="zero-ref" type="number" id="p-extra-noct-jueves" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Viernes<input class="zero-ref" type="number" id="p-extra-noct-viernes" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Sábado<input class="zero-ref" type="number" id="p-extra-noct-sabado" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+                <label>Domingo nocturno<input class="zero-ref" type="number" id="p-extra-noct-domingo" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></label>
+              </div></div>
+              <div class="form-group"><label>Pago descanso laborado total</label><input type="text" id="p-domingo-pago" readonly></div>
               <div class="form-group"><label>Séptimo (horas)</label><input type="number" id="p-h-septimo" step="0.5" min="0" value="12" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Asueto laborado (horas 1×)</label><input class="zero-ref" type="number" id="p-h-asueto" step="0.5" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Extra diurna en asueto (3×)</label><input class="zero-ref" type="number" id="p-asueto-extra-diurna" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Extra nocturna en asueto (3.25×)</label><input class="zero-ref" type="number" id="p-asueto-extra-nocturna" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Otros ingresos ($)</label><input class="zero-ref" type="number" id="p-otros-ingresos" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-divider">Deducciones</div>
               <div class="form-group"><label>ISSS según empleado 3%</label><input type="text" id="p-isss" readonly></div>
