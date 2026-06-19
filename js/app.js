@@ -17,6 +17,7 @@ const EXTRA_DIAS = [
 let state = cargarEstado();
 let empleadoEditId = null;
 let planillaEditId = null;
+let ajustesPlanillaMasiva = {};
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
@@ -98,6 +99,7 @@ function normalizarPlanilla(p) {
     aplicarIsss,
     aplicarAfp,
     calc,
+    origen: p.origen === 'masiva' ? 'masiva' : 'individual',
     boletaGenerada: !!p.boletaGenerada
   };
 }
@@ -245,7 +247,8 @@ function empleadoAplicaSemana(emp) {
 }
 function empleadoDisponiblePlanilla(emp) {
   if (!empleadoAplicaSemana(emp)) return false;
-  return !state.planillas.some(p => p.empleadoId === emp.id && p.id !== planillaEditId);
+  const { inicio, fin } = semanaPlanillaActual();
+  return !state.planillas.some(p => p.empleadoId === emp.id && p.fechaInicio === inicio && p.fechaFin === fin && p.id !== planillaEditId);
 }
 function empleadosDisponiblesPlanilla() {
   return ordenarPorNombre(state.empleados.filter(empleadoDisponiblePlanilla));
@@ -274,9 +277,8 @@ function lunesDeFecha(value) {
   d.setDate(d.getDate() - diff);
   return d;
 }
-function pagoProporcionalSalida(emp) {
+function pagoProporcionalSalidaEnRango(emp, inicio, fin) {
   if (!emp || emp.estado !== 'inactivo' || !emp.fechaSalida) return null;
-  const { inicio, fin } = semanaPlanillaActual();
   const salida = fechaLocal(emp.fechaSalida);
   const lunes = fechaLocal(inicio);
   const domingo = fechaLocal(fin);
@@ -297,6 +299,10 @@ function pagoProporcionalSalida(emp) {
     horasSeptimo: diasTrabajados * 2,
     fechaSalida: emp.fechaSalida
   };
+}
+function pagoProporcionalSalida(emp) {
+  const { inicio, fin } = semanaPlanillaActual();
+  return pagoProporcionalSalidaEnRango(emp, inicio, fin);
 }
 function sugerirRenta(devengado) {
   return red(num(devengado) * 0.10);
@@ -394,6 +400,7 @@ function ajustarSemanaDesdeInicio() {
   document.getElementById('p-fecha-inicio').value = iso(monday);
   document.getElementById('p-fecha-fin').value = iso(sunday);
   renderSelects();
+  renderPlanilla();
 }
 function cargarEmpleadoPlanilla() {
   const emp = empleadoPorId(document.getElementById('p-empleado').value);
@@ -430,6 +437,112 @@ function buscarEmpleadoPlanilla() {
   hidden.value = emp ? emp.id : '';
   cargarEmpleadoPlanilla();
 }
+function semanaMasivaActual() {
+  return {
+    inicio: document.getElementById('m-fecha-inicio')?.value || '',
+    fin: document.getElementById('m-fecha-fin')?.value || ''
+  };
+}
+function empleadoAplicaSemanaMasiva(emp) {
+  if (!emp) return false;
+  if (emp.estado === 'activo') return true;
+  const { inicio } = semanaMasivaActual();
+  return !!(emp.fechaSalida && inicio && fechaLocal(emp.fechaSalida) >= fechaLocal(inicio));
+}
+function empleadosPlanillaMasiva() {
+  return ordenarPorNombre(state.empleados.filter(empleadoAplicaSemanaMasiva));
+}
+function ajustarSemanaMasiva() {
+  const monday = lunesDeFecha(document.getElementById('m-fecha-inicio').value);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  document.getElementById('m-fecha-inicio').value = iso(monday);
+  document.getElementById('m-fecha-fin').value = iso(sunday);
+  ajustesPlanillaMasiva = {};
+  limpiarAjusteMasivo();
+  renderPlanillaMasiva();
+}
+function setSemanaMasivaActual() {
+  const monday = lunesDeFecha(todayIso());
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  document.getElementById('m-fecha-inicio').value = iso(monday);
+  document.getElementById('m-fecha-fin').value = iso(sunday);
+}
+function leerAjusteMasivoForm() {
+  const extraDias = extraDiasVacio();
+  ['lunes','martes','miercoles','jueves','viernes','sabado'].forEach(dia => {
+    extraDias[dia] = num(document.getElementById('m-extra-' + dia).value);
+  });
+  return {
+    extraDias,
+    hAsueto: num(document.getElementById('m-h-asueto').value),
+    hDomingo: num(document.getElementById('m-h-domingo').value)
+  };
+}
+function cargarAjusteMasivoForm(ajuste) {
+  const datos = ajuste || { extraDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0 };
+  ['lunes','martes','miercoles','jueves','viernes','sabado'].forEach(dia => {
+    ponerNumeroReferencia('m-extra-' + dia, datos.extraDias?.[dia]);
+  });
+  ponerNumeroReferencia('m-h-asueto', datos.hAsueto);
+  ponerNumeroReferencia('m-h-domingo', datos.hDomingo);
+}
+function buscarEmpleadoMasivo() {
+  const input = document.getElementById('m-empleado-buscar');
+  const valor = textoNormalizado(input.value);
+  const emp = empleadosPlanillaMasiva().find(e => textoNormalizado(e.nombre) === valor);
+  document.getElementById('m-empleado').value = emp?.id || '';
+  document.getElementById('m-empleado-info').value = emp ? `${emp.departamento} · ${emp.cargo}` : '';
+  cargarAjusteMasivoForm(emp ? ajustesPlanillaMasiva[emp.id] : null);
+}
+function guardarAjusteMasivo() {
+  const id = document.getElementById('m-empleado').value;
+  const emp = empleadoPorId(id);
+  if (!emp) { toast('Selecciona un empleado.'); return; }
+  const ajuste = leerAjusteMasivoForm();
+  const tieneAjuste = totalHorasExtraLaboral(ajuste.extraDias) > 0 || ajuste.hAsueto > 0 || ajuste.hDomingo > 0;
+  if (tieneAjuste) ajustesPlanillaMasiva[id] = ajuste; else delete ajustesPlanillaMasiva[id];
+  limpiarAjusteMasivo();
+  renderPlanillaMasiva();
+  toast('Guardado');
+}
+function editarAjusteMasivo(id) {
+  const emp = empleadoPorId(id);
+  if (!emp) return;
+  document.getElementById('m-empleado').value = id;
+  document.getElementById('m-empleado-buscar').value = emp.nombre;
+  document.getElementById('m-empleado-info').value = `${emp.departamento} · ${emp.cargo}`;
+  cargarAjusteMasivoForm(ajustesPlanillaMasiva[id]);
+}
+function eliminarAjusteMasivo(id) {
+  delete ajustesPlanillaMasiva[id];
+  limpiarAjusteMasivo();
+  renderPlanillaMasiva();
+}
+function limpiarAjusteMasivo() {
+  const hidden = document.getElementById('m-empleado');
+  if (!hidden) return;
+  hidden.value = '';
+  document.getElementById('m-empleado-buscar').value = '';
+  document.getElementById('m-empleado-info').value = '';
+  cargarAjusteMasivoForm();
+}
+function renderPlanillaMasiva() {
+  const empleados = empleadosPlanillaMasiva();
+  const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
+  document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
+  document.getElementById('masiva-empleados-count').textContent = `${empleados.length} empleados · ${ajustes.length} ajustes`;
+  const tbody = document.getElementById('masiva-ajustes-tbody');
+  if (!ajustes.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="table-empty">Sin ajustes especiales.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = ajustes.map(([id, ajuste]) => {
+    const emp = empleadoPorId(id);
+    return `<tr><td><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${esc(resumenDiasExtra(ajuste.extraDias) || '-')}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)}</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
+  }).join('');
+}
 function datosPlanillaForm() {
   const emp = empleadoPorId(document.getElementById('p-empleado').value);
   const extraDias = leerExtraDiasForm();
@@ -465,14 +578,9 @@ function calcularPreviewPlanilla() {
   document.getElementById('p-prev-afp-inst').textContent = d.empleado?.descontarAfp === false ? 'No aplica' : (d.empleado?.afpInstitucion || '-');
   return calc;
 }
-function guardarRegistroPlanilla() {
-  const d = datosPlanillaForm();
-  if (!d.empleado) { toast('Selecciona un empleado disponible.'); return; }
-  if (!empleadoDisponiblePlanilla(d.empleado)) { toast('Ese empleado ya está en la planilla actual.'); return; }
-  if (!d.fechaInicio || !d.fechaFin) { toast('Selecciona la semana de pago.'); return; }
-  const calc = calcularPago(d);
-  const registro = {
-    id: planillaEditId || uid(),
+function construirRegistroPlanilla(d, id) {
+  return {
+    id: id || uid(),
     empleadoId: d.empleado.id,
     empleadoSnapshot: normalizarEmpleado(d.empleado),
     fechaRegistro: todayIso(),
@@ -491,14 +599,75 @@ function guardarRegistroPlanilla() {
     aplicarRenta: d.aplicarRenta,
     aplicarIsss: d.aplicarIsss,
     aplicarAfp: d.aplicarAfp,
-    calc,
+    calc: calcularPago(d),
+    origen: d.origen === 'masiva' ? 'masiva' : 'individual',
     boletaGenerada: false
   };
+}
+function guardarRegistroPlanilla() {
+  const d = datosPlanillaForm();
+  if (!d.empleado) { toast('Selecciona un empleado disponible.'); return; }
+  if (!empleadoDisponiblePlanilla(d.empleado)) { toast('Ese empleado ya está en la planilla actual.'); return; }
+  if (!d.fechaInicio || !d.fechaFin) { toast('Selecciona la semana de pago.'); return; }
+  const registro = construirRegistroPlanilla(d, planillaEditId);
   const idx = state.planillas.findIndex(p => p.id === registro.id);
   if (idx >= 0) state.planillas[idx] = registro; else state.planillas.push(registro);
   planillaEditId = null;
   limpiarPlanillaForm(false);
   guardarEstado();
+}
+function datosPlanillaMasivaEmpleado(emp) {
+  const { inicio, fin } = semanaMasivaActual();
+  const ajuste = ajustesPlanillaMasiva[emp.id] || { extraDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0 };
+  const extraDias = normalizarExtraDias(ajuste.extraDias);
+  extraDias.domingo = num(ajuste.hDomingo);
+  const proporcional = pagoProporcionalSalidaEnRango(emp, inicio, fin);
+  const descuentoFijo = num(emp.descuentoFijo);
+  return {
+    empleado: emp,
+    fechaInicio: inicio,
+    fechaFin: fin,
+    hOrdinarias: proporcional ? proporcional.horasOrdinarias : num(document.getElementById('m-h-ordinarias').value),
+    extraDias,
+    extraDia: resumenDiasExtra(extraDias),
+    hExtra: totalHorasExtraLaboral(extraDias),
+    hDomingo: num(extraDias.domingo),
+    hSeptimo: proporcional ? proporcional.horasSeptimo : num(document.getElementById('m-h-septimo').value),
+    hAsueto: num(ajuste.hAsueto),
+    otrosIngresos: 0,
+    aplicarRenta: !!emp.aplicarRenta,
+    aplicarIsss: emp.descontarIsss !== false,
+    aplicarAfp: emp.descontarAfp !== false,
+    prestamos: emp.descuentoConcepto === 'Prestamo' ? descuentoFijo : 0,
+    otrosDescuentos: emp.descuentoConcepto !== 'Prestamo' ? descuentoFijo : 0,
+    origen: 'masiva'
+  };
+}
+function crearPlanillasMasivas() {
+  const { inicio, fin } = semanaMasivaActual();
+  if (!inicio || !fin) { toast('Selecciona la semana.'); return; }
+  const empleados = empleadosPlanillaMasiva();
+  if (!empleados.length) { toast('No hay empleados disponibles.'); return; }
+  empleados.forEach(emp => {
+    const existenteIdx = state.planillas.findIndex(p => p.empleadoId === emp.id && p.fechaInicio === inicio && p.fechaFin === fin);
+    if (existenteIdx >= 0 && state.planillas[existenteIdx].origen !== 'masiva') return;
+    const datos = datosPlanillaMasivaEmpleado(emp);
+    const registro = construirRegistroPlanilla(datos, existenteIdx >= 0 ? state.planillas[existenteIdx].id : null);
+    if (existenteIdx >= 0) state.planillas[existenteIdx] = registro; else state.planillas.push(registro);
+  });
+  document.getElementById('p-fecha-inicio').value = inicio;
+  document.getElementById('p-fecha-fin').value = fin;
+  guardarEstado();
+}
+function crearBoletasSemanaMasiva() {
+  const { inicio, fin } = semanaMasivaActual();
+  const planillas = state.planillas.filter(p => p.fechaInicio === inicio && p.fechaFin === fin);
+  if (!planillas.length) { toast('Primero crea las planillas de la semana.'); return; }
+  planillas.forEach(guardarBoletaAutomatica);
+  document.getElementById('p-fecha-inicio').value = inicio;
+  document.getElementById('p-fecha-fin').value = fin;
+  guardarEstado();
+  showTab('boletas');
 }
 function editarPlanilla(id) {
   const p = state.planillas.find(x => x.id === id);
@@ -901,14 +1070,15 @@ function filaTotalesDetalle(label, total, clase = '') {
   return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.horasN).toFixed(2)}</th><th>${num(total.horasExtra).toFixed(2)}</th><th>${num(total.horasDomingo).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
 }
 function abrirDetallePlanilla() {
-  if (!state.planillas.length) { toast('No hay registros para generar el detalle.'); return; }
+  const planillasReporte = planillasSemanaSeleccionada();
+  if (!planillasReporte.length) { toast('No hay registros para generar el detalle.'); return; }
   const grupos = new Map();
-  state.planillas.forEach(p => {
+  planillasReporte.forEach(p => {
     const area = p.empleadoSnapshot?.departamento || 'Sin área';
     if (!grupos.has(area)) grupos.set(area, []);
     grupos.get(area).push(p);
   });
-  const periodos = [...new Set(state.planillas.map(periodoTexto))].join(' / ');
+  const periodos = [...new Set(planillasReporte.map(periodoTexto))].join(' / ');
   const filasPorArea = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'es')).map(([area, planillas]) => {
     const ordenadas = planillas.slice().sort((a, b) => a.empleadoSnapshot.nombre.localeCompare(b.empleadoSnapshot.nombre, 'es'));
     const filas = ordenadas.map(p => {
@@ -918,7 +1088,7 @@ function abrirDetallePlanilla() {
     }).join('');
     return `<tr class="area-title-row"><th colspan="14">ÁREA: ${esc(area.toUpperCase())}</th></tr>${filas}${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}`;
   }).join('');
-  const totalGeneral = totalesDetallePlanilla(state.planillas);
+  const totalGeneral = totalesDetallePlanilla(planillasReporte);
   document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>Sueldo/Hora</th><th>H. D.</th><th>H. N.</th><th>H. Extra</th><th>H. Desc. laborado</th><th>H. Sept./Desc.</th><th>H. Asueto</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros desc.</th><th>Salario neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
   document.getElementById('payroll-detail-overlay').dataset.reportType = 'payroll';
@@ -1070,6 +1240,7 @@ function renderTodo() {
   renderStats();
   renderSelects();
   renderEmpleados();
+  renderPlanillaMasiva();
   renderPlanilla();
   renderHistorial();
   renderBoletasGeneradas();
@@ -1153,12 +1324,13 @@ function renderEmpleados() {
     </tr>`).join('');
 }
 function renderPlanilla() {
-  document.getElementById('planilla-count').textContent = state.planillas.length + ' registro' + (state.planillas.length === 1 ? '' : 's');
+  const planillas = planillasSemanaSeleccionada();
+  document.getElementById('planilla-count').textContent = planillas.length + ' registro' + (planillas.length === 1 ? '' : 's');
   const tbody = document.getElementById('planilla-tbody');
   const tfoot = document.getElementById('planilla-tfoot');
-  if (!state.planillas.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="table-empty">No hay registros de planilla.</div></td></tr>'; tfoot.innerHTML = ''; return; }
+  if (!planillas.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="table-empty">No hay registros de planilla para esta semana.</div></td></tr>'; tfoot.innerHTML = ''; return; }
   let dev = 0, desc = 0, net = 0;
-  tbody.innerHTML = state.planillas.map((p, i) => {
+  tbody.innerHTML = planillas.map((p, i) => {
     dev += p.calc.devengado; desc += p.calc.descuentos; net += p.calc.neto;
     return `<tr>
       <td>${i + 1}</td>
@@ -1211,5 +1383,6 @@ function setSemanaActual() {
 
 document.getElementById('today-pill').textContent = new Date().toLocaleDateString('es-SV', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 setSemanaActual();
+setSemanaMasivaActual();
 toggleFechaSalida();
 guardarEstado(false);

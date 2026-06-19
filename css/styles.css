@@ -221,6 +221,26 @@
     color: var(--muted);
   }
   .extra-days input { width: 100%; margin-top: 6px; }
+  .mass-hours-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .mass-hours-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #F8FAFC;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .mass-hours-grid input { min-width: 0; }
+  .mass-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); }
   .form-divider {
     grid-column: 1 / -1;
     display: flex;
@@ -602,10 +622,12 @@
     .dashboard-grid, .kpi-grid { grid-template-columns: 1fr; }
     .form-group.span2, .form-group.span3 { grid-column: 1 / -1; }
     .extra-days { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    .mass-hours-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     .calc-preview { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 560px) {
     .extra-days { grid-template-columns: 1fr; }
+    .mass-hours-grid { grid-template-columns: 1fr; }
     .calc-preview, .receipt-meta { grid-template-columns: 1fr; }
     .page-head { flex-direction: column; }
   }

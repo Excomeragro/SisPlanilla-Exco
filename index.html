@@ -82,6 +82,34 @@
       <div class="page-head">
         <div><h1>Planilla semanal</h1><p>La semana inicia lunes y finaliza domingo. Los empleados inactivos pueden cerrar proporcionalmente su última semana.</p></div>
       </div>
+      <div class="card" id="planilla-masiva-card">
+        <div class="card-header"><h2>Planilla masiva</h2><span class="badge badge-blue" id="masiva-empleados-count">0 empleados</span></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-divider">Semana para todos</div>
+            <div class="form-group"><label>Fecha inicio (lunes)</label><input type="date" id="m-fecha-inicio" onchange="ajustarSemanaMasiva()"></div>
+            <div class="form-group"><label>Fecha fin (domingo)</label><input type="date" id="m-fecha-fin" readonly></div>
+            <div class="form-group"><label>Horas ordinarias base</label><input type="number" id="m-h-ordinarias" value="44" step="0.5" min="0"></div>
+            <div class="form-group"><label>Séptimo base</label><input type="number" id="m-h-septimo" value="12" step="0.5" min="0"></div>
+            <div class="form-divider">Ajustes especiales por empleado</div>
+            <div class="form-group span2"><label>Buscar empleado</label><input type="search" id="m-empleado-buscar" list="m-empleados-lista" placeholder="Escribe apellido o nombre" autocomplete="off" oninput="buscarEmpleadoMasivo()" onchange="buscarEmpleadoMasivo()"><input type="hidden" id="m-empleado"><datalist id="m-empleados-lista"></datalist></div>
+            <div class="form-group span2"><label>Empleado seleccionado</label><input type="text" id="m-empleado-info" readonly></div>
+            <div class="form-group full"><label>Horas especiales</label><div class="mass-hours-grid">
+              <label>Lunes extra<input class="zero-ref" type="number" id="m-extra-lunes" step="0.5" min="0" placeholder="0"></label>
+              <label>Martes extra<input class="zero-ref" type="number" id="m-extra-martes" step="0.5" min="0" placeholder="0"></label>
+              <label>Miércoles extra<input class="zero-ref" type="number" id="m-extra-miercoles" step="0.5" min="0" placeholder="0"></label>
+              <label>Jueves extra<input class="zero-ref" type="number" id="m-extra-jueves" step="0.5" min="0" placeholder="0"></label>
+              <label>Viernes extra<input class="zero-ref" type="number" id="m-extra-viernes" step="0.5" min="0" placeholder="0"></label>
+              <label>Sábado extra<input class="zero-ref" type="number" id="m-extra-sabado" step="0.5" min="0" placeholder="0"></label>
+              <label>Asueto laborado<input class="zero-ref" type="number" id="m-h-asueto" step="0.5" min="0" placeholder="0"></label>
+              <label>Descanso laborado<input class="zero-ref" type="number" id="m-h-domingo" step="0.5" min="0" placeholder="0"></label>
+            </div></div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="guardarAjusteMasivo()">Agregar / actualizar horas</button><button class="btn btn-ghost" onclick="limpiarAjusteMasivo()">Limpiar ajuste</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Horas extra L-S</th><th>Días extra</th><th>Asueto</th><th>Descanso laborado</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="6"><div class="table-empty">Sin ajustes especiales.</div></td></tr></tbody></table></div>
+        <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>
+      </div>
       <div class="card">
         <div class="card-header"><h2>Nuevo registro semanal</h2><span class="badge badge-blue" id="planilla-mode">Nuevo</span></div>
         <div class="card-body">
