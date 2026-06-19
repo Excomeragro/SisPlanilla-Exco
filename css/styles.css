@@ -589,8 +589,8 @@
     .receipt-actions { display:none !important; }
     @page { size: letter portrait; margin: 8mm; }
     .receipt-box { box-shadow:none !important; max-width:100% !important; max-height:none !important; overflow:visible !important; border-radius:0 !important; }
-    .receipt-pages { gap: 4mm !important; padding: 0 !important; }
-    .receipt-copy { height: 126mm; padding-bottom: 2mm !important; overflow: hidden; transform: scale(.88); width: 113.64%; margin-left: -6.82%; }
+    .receipt-pages { gap: 2mm !important; padding: 0 !important; }
+    .receipt-copy { height: auto !important; min-height: 0 !important; padding-bottom: 2mm !important; overflow: visible !important; transform: none !important; width: 100% !important; margin: 0 !important; }
     .receipt-copy:first-child { border-bottom: 1px dashed #555; }
     .receipt-header { padding: 5px 10px 4px !important; }
     .receipt-company { font-size: 18px !important; }
