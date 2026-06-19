@@ -385,6 +385,12 @@ function showTab(tab) {
   document.querySelectorAll('.sidebar-btn[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   if (tab === 'historial') renderHistorial();
   if (tab === 'boletas') { renderBoletasDisponibles(); renderBoletasGeneradas(); }
+  if (tab === 'planilla-masiva') renderPlanillaMasiva();
+}
+function prepararVistaPlanillaMasiva() {
+  const card = document.getElementById('planilla-masiva-card');
+  const host = document.getElementById('planilla-masiva-host');
+  if (card && host && card.parentNode !== host) host.appendChild(card);
 }
 function toast(msg, dur = 2800) {
   const el = document.getElementById('toast');
@@ -1382,6 +1388,7 @@ function setSemanaActual() {
 }
 
 document.getElementById('today-pill').textContent = new Date().toLocaleDateString('es-SV', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+prepararVistaPlanillaMasiva();
 setSemanaActual();
 setSemanaMasivaActual();
 toggleFechaSalida();
