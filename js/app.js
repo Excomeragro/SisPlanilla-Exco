@@ -817,6 +817,10 @@ function buscarEmpleadoMasivo() {
   const emp = empleadosPlanillaMasiva().find(e => textoNormalizado(e.nombre) === valor);
   document.getElementById('m-empleado').value = emp?.id || '';
   document.getElementById('m-empleado-info').value = emp ? `${emp.departamento} · ${emp.cargo}` : '';
+  if (emp && !ajustesPlanillaMasiva[emp.id]) {
+    ajustesPlanillaMasiva[emp.id] = { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0 };
+    renderPlanillaMasiva();
+  }
   cargarAjusteMasivoForm(emp ? ajustesPlanillaMasiva[emp.id] : null);
 }
 function guardarAjusteMasivo() {
@@ -824,8 +828,7 @@ function guardarAjusteMasivo() {
   const emp = empleadoPorId(id);
   if (!emp) { toast('Selecciona un empleado.'); return; }
   const ajuste = leerAjusteMasivoForm();
-  const tieneAjuste = totalHorasExtraLaboral(ajuste.extraDias) > 0 || totalHorasExtra(ajuste.extraNocturnasDias) > 0 || ajuste.hAsueto > 0 || ajuste.hDomingo > 0 || ajuste.hAsuetoExtraDiurna > 0 || ajuste.hAsuetoExtraNocturna > 0 || ajuste.hPermiso > 0 || ajuste.diasSinPermiso > 0;
-  if (tieneAjuste) ajustesPlanillaMasiva[id] = ajuste; else delete ajustesPlanillaMasiva[id];
+  ajustesPlanillaMasiva[id] = ajuste;
   limpiarAjusteMasivo();
   renderPlanillaMasiva();
   toast('Guardado');
@@ -854,16 +857,16 @@ function limpiarAjusteMasivo() {
 function renderPlanillaMasiva() {
   const empleados = empleadosPlanillaMasiva();
   const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
-  document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
-  document.getElementById('masiva-empleados-count').textContent = `${empleados.length} empleados · ${ajustes.length} ajustes`;
+  document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${ajustesPlanillaMasiva[e.id] ? 'Seleccionado · ' : ''}${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
+  document.getElementById('masiva-empleados-count').textContent = `${empleados.length} empleados · ${ajustes.length} seleccionados`;
   const tbody = document.getElementById('masiva-ajustes-tbody');
   if (!ajustes.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="table-empty">Sin ajustes especiales.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr>';
     return;
   }
   tbody.innerHTML = ajustes.map(([id, ajuste]) => {
     const emp = empleadoPorId(id);
-    return `<tr><td><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(ajuste.hPermiso).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} d</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
+    return `<tr class="mass-selected-row"><td><div class="col-name">${esc(emp.nombre)} <span class="badge badge-green">Seleccionado</span></div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(ajuste.hPermiso).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} d</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
   }).join('');
 }
 function datosPlanillaForm() {

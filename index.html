@@ -129,9 +129,9 @@
               <label>Días sin permiso<input class="zero-ref" type="number" id="m-dias-sin-permiso" step="1" min="0" placeholder="0"></label>
             </div></div>
           </div>
-          <div class="btn-row"><button class="btn btn-primary" onclick="guardarAjusteMasivo()">Agregar / actualizar horas</button><button class="btn btn-ghost" onclick="limpiarAjusteMasivo()">Limpiar ajuste</button></div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="guardarAjusteMasivo()">Guardar horas del seleccionado</button><button class="btn btn-ghost" onclick="limpiarAjusteMasivo()">Limpiar búsqueda</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Permiso / faltas</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="8"><div class="table-empty">Sin ajustes especiales.</div></td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado seleccionado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Permiso / faltas</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr></tbody></table></div>
         <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>
       </div>
       <div class="card" id="planilla-form-card">

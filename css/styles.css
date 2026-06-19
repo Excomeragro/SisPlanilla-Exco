@@ -264,6 +264,7 @@
     text-transform: uppercase;
   }
   .mass-hours-grid input { min-width: 0; }
+  .mass-selected-row { background: #F0FDF4; }
   .mass-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); }
   .form-divider {
     grid-column: 1 / -1;
