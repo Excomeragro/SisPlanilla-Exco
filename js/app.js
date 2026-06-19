@@ -1019,6 +1019,7 @@ function editarPlanilla(id) {
   document.getElementById('planilla-mode').textContent = 'Editar';
   document.getElementById('planilla-mode').className = 'badge badge-amber';
   calcularPreviewPlanilla();
+  requestAnimationFrame(() => document.getElementById('planilla-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 function eliminarPlanilla(id) {
   if (!confirm('¿Eliminar este registro completo? También se borrará su boleta e historial relacionado.')) return;
@@ -1440,7 +1441,7 @@ function imprimirDetallePlanilla() {
   document.body.classList.toggle('printing-cash-report', esDesglose);
   const style = document.createElement('style');
   style.id = 'payroll-detail-page-style';
-  style.textContent = esDesglose ? '@page { size: letter portrait; margin: 12mm; }' : '@page { size: letter landscape; margin: 8mm; }';
+  style.textContent = esDesglose ? '@page { size: letter portrait; margin: 12mm; }' : '@page { size: legal landscape; margin: 8mm; }';
   document.head.appendChild(style);
   window.print();
 }
@@ -1659,11 +1660,13 @@ function renderEmpleados() {
     </tr>`).join('');
 }
 function renderPlanilla() {
-  const planillas = planillasSemanaSeleccionada();
-  document.getElementById('planilla-count').textContent = planillas.length + ' registro' + (planillas.length === 1 ? '' : 's');
+  const planillasSemana = planillasSemanaSeleccionada();
+  const busqueda = textoNormalizado(document.getElementById('planilla-search')?.value);
+  const planillas = busqueda ? planillasSemana.filter(p => textoNormalizado(p.empleadoSnapshot?.nombre).includes(busqueda) || textoNormalizado(p.empleadoSnapshot?.dui).includes(busqueda)) : planillasSemana;
+  document.getElementById('planilla-count').textContent = busqueda ? `${planillas.length} de ${planillasSemana.length}` : planillas.length + ' registro' + (planillas.length === 1 ? '' : 's');
   const tbody = document.getElementById('planilla-tbody');
   const tfoot = document.getElementById('planilla-tfoot');
-  if (!planillas.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="table-empty">No hay registros de planilla para esta semana.</div></td></tr>'; tfoot.innerHTML = ''; return; }
+  if (!planillas.length) { tbody.innerHTML = `<tr><td colspan="11"><div class="table-empty">${busqueda ? 'No se encontraron empleados.' : 'No hay registros de planilla para esta semana.'}</div></td></tr>`; tfoot.innerHTML = ''; return; }
   let dev = 0, desc = 0, net = 0;
   tbody.innerHTML = planillas.map((p, i) => {
     dev += p.calc.devengado; desc += p.calc.descuentos; net += p.calc.neto;

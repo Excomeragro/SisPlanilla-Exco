@@ -132,7 +132,7 @@
         <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="7"><div class="table-empty">Sin ajustes especiales.</div></td></tr></tbody></table></div>
         <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>
       </div>
-      <div class="card">
+      <div class="card" id="planilla-form-card">
         <div class="card-header"><h2>Nuevo registro semanal</h2><span class="badge badge-blue" id="planilla-mode">Nuevo</span></div>
         <div class="card-body">
           <form id="planilla-form" onsubmit="return false;">
@@ -192,6 +192,7 @@
       </div>
       <div class="card">
         <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-primary btn-sm" onclick="abrirDesgloseEfectivo()">Desglose de efectivo</button><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><span class="badge badge-green" id="planilla-count">0 registros</span></div>
+        <div class="table-tools"><div class="form-group"><label for="planilla-search">Buscar empleado</label><input type="search" id="planilla-search" placeholder="Nombre o DUI" autocomplete="off" oninput="renderPlanilla()"></div></div>
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra L-S</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
       </div>
     </section>

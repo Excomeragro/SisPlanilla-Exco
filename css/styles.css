@@ -161,6 +161,8 @@
   .cloud-user-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border-bottom:1px solid var(--border); }
   .cloud-user-row:last-child { border-bottom:0; }
   .cloud-user-row strong { overflow-wrap:anywhere; }
+  .table-tools { display:flex; align-items:end; gap:12px; padding:10px 20px; border-bottom:1px solid var(--border); }
+  .table-tools .form-group { width:min(360px, 100%); }
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -380,7 +382,7 @@
   }
   #payroll-detail-overlay.open { display: block; }
   .payroll-detail-box {
-    width: min(1380px, 100%);
+    width: min(1600px, 100%);
     margin: 0 auto;
     padding: 24px;
     background: #fff;
@@ -388,13 +390,13 @@
     box-shadow: 0 20px 60px rgba(0,0,0,.35);
   }
   .payroll-report-header { margin-bottom: 10px; text-align: center; }
-  .payroll-report-header h1 { font-size: 18px; }
-  .payroll-report-header h2 { margin: 2px 0 4px; font-size: 13px; }
-  .payroll-report-header div { font-size: 10px; }
+  .payroll-report-header h1 { font-size: 21px; }
+  .payroll-report-header h2 { margin: 3px 0 5px; font-size: 15px; }
+  .payroll-report-header div { font-size: 12px; }
   .payroll-area { margin-top: 18px; break-inside: avoid; }
   .payroll-area h3 { padding: 7px 9px; background: #E2E8F0; border: 1px solid #94A3B8; font-size: 12px; }
-  .payroll-detail-table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: 9px; }
-  .payroll-detail-table th, .payroll-detail-table td { padding: 3px 2px; border: 1px solid #94A3B8; text-align: right; white-space: nowrap; }
+  .payroll-detail-table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: 10.5px; }
+  .payroll-detail-table th, .payroll-detail-table td { padding: 5px 3px; border: 1px solid #94A3B8; text-align: right; white-space: nowrap; }
   .payroll-detail-table th:first-child, .payroll-detail-table td:first-child { min-width: 165px; text-align: left; white-space: normal; }
   .payroll-detail-table thead { background: #0F172A; color: #fff; }
   .payroll-detail-table .area-title-row th { padding: 3px 5px; background: #E2E8F0; color: #0F172A; text-align: left; font-size: 9px; }
@@ -616,14 +618,14 @@
     body.printing-payroll-detail .payroll-detail-box { width:100% !important; margin:0 !important; padding:0 !important; box-shadow:none !important; }
     body.printing-payroll-detail .payroll-detail-actions { display:none !important; }
     body.printing-payroll-detail .payroll-report-header { margin-bottom:5px !important; }
-    body.printing-payroll-detail .payroll-report-header h1 { font-size:14px !important; }
-    body.printing-payroll-detail .payroll-report-header h2 { margin:1px 0 2px !important; font-size:10px !important; }
-    body.printing-payroll-detail .payroll-report-header div { font-size:8px !important; }
-    body.printing-payroll-detail .payroll-detail-table { font-size:7.5px !important; }
-    body.printing-payroll-detail .payroll-detail-table thead { display:table-row-group !important; }
+    body.printing-payroll-detail .payroll-report-header h1 { font-size:18px !important; }
+    body.printing-payroll-detail .payroll-report-header h2 { margin:2px 0 4px !important; font-size:13px !important; }
+    body.printing-payroll-detail .payroll-report-header div { font-size:10px !important; }
+    body.printing-payroll-detail .payroll-detail-table { font-size:9.5px !important; }
+    body.printing-payroll-detail .payroll-detail-table thead { display:table-header-group !important; }
     body.printing-payroll-detail .payroll-detail-table th,
-    body.printing-payroll-detail .payroll-detail-table td { padding:2px 1px !important; line-height:1.05 !important; }
-    body.printing-payroll-detail .payroll-detail-table .area-title-row th { padding:2px 3px !important; }
+    body.printing-payroll-detail .payroll-detail-table td { padding:3px 2px !important; line-height:1.15 !important; }
+    body.printing-payroll-detail .payroll-detail-table .area-title-row th { padding:3px 4px !important; }
     body.printing-payroll-detail .cash-report-total { margin-bottom:5px !important; padding:4px 8px !important; font-size:9px !important; }
     body.printing-payroll-detail .cash-report-total strong { font-size:11px !important; }
     body.printing-payroll-detail .cash-summary-table { margin-bottom:6px !important; }
