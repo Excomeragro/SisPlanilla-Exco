@@ -3,7 +3,7 @@ const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
-const PAYROLL_CALC_VERSION = 5;
+const PAYROLL_CALC_VERSION = 6;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
   { key: 'lunes', label: 'Lunes' },
@@ -592,9 +592,12 @@ function calcularPago(d) {
   const diasIncapacidad = Math.max(0, Math.floor(num(d.diasIncapacidad)));
   const horasAusencia = diasSinPermiso * 8;
   const horasIncapacidad = diasIncapacidad * 8;
-  const horasOrdinariasPagadas = Math.max(0, num(d.hOrdinarias) - horasPermiso - horasAusencia - horasIncapacidad);
+  const horasDisponiblesTrasDescuentos = Math.max(0, num(d.hOrdinarias) - horasPermiso - horasAusencia);
+  const horasIncapacidadPagadas = Math.min(horasDisponiblesTrasDescuentos, horasIncapacidad);
+  const horasOrdinariasPagadas = Math.max(0, horasDisponiblesTrasDescuentos - horasIncapacidadPagadas);
   const horasSeptimoPagadas = diasSinPermiso > 0 ? 0 : num(d.hSeptimo);
   const ord = horasOrdinariasPagadas * salario;
+  const incapacidad = horasIncapacidadPagadas * salario;
   const horasExtraLaboral = d.extraDias ? totalHorasExtraLaboral(d.extraDias) : num(d.hExtra);
   const horasDomingo = num(d.hDomingo ?? d.extraDias?.domingo);
   const horasExtraNocturna = d.extraNocturnasDias ? totalHorasExtraLaboral(d.extraNocturnasDias) : num(d.hExtraNocturna);
@@ -608,7 +611,7 @@ function calcularPago(d) {
   const asuetoExtraDiurna = num(d.hAsuetoExtraDiurna) * salario * 3;
   const asuetoExtraNocturna = num(d.hAsuetoExtraNocturna) * salario * 3.25;
   const otrosIngresos = num(d.otrosIngresos);
-  const devengado = ord + extra + extraNocturna + domingo + domingoNocturno + septimo + asueto + asuetoExtraDiurna + asuetoExtraNocturna + otrosIngresos;
+  const devengado = ord + incapacidad + extra + extraNocturna + domingo + domingoNocturno + septimo + asueto + asuetoExtraDiurna + asuetoExtraNocturna + otrosIngresos;
   const aplicarIsss = d.aplicarIsss !== undefined ? !!d.aplicarIsss : d.empleado?.descontarIsss !== false;
   const aplicarAfp = d.aplicarAfp !== undefined ? !!d.aplicarAfp : d.empleado?.descontarAfp !== false;
   const aplicarRenta = d.aplicarRenta !== undefined ? !!d.aplicarRenta : !!d.empleado?.aplicarRenta;
@@ -621,11 +624,11 @@ function calcularPago(d) {
   const descuentos = isss + afp + renta + prestamos + otrosDescuentos;
   return {
     version: PAYROLL_CALC_VERSION,
-    horasOrdinariasPagadas: red(horasOrdinariasPagadas), horasSeptimoPagadas: red(horasSeptimoPagadas),
+    horasOrdinariasPagadas: red(horasOrdinariasPagadas), horasIncapacidadPagadas: red(horasIncapacidadPagadas), horasSeptimoPagadas: red(horasSeptimoPagadas),
     descuentoPermiso: red(Math.min(num(d.hOrdinarias), horasPermiso) * salario),
     descuentoAusencia: red(Math.min(Math.max(0, num(d.hOrdinarias) - horasPermiso), horasAusencia) * salario),
     descuentoSeptimo: red((num(d.hSeptimo) - horasSeptimoPagadas) * salario),
-    ord: red(ord), extra: red(extra), extraNocturna: red(extraNocturna), domingo: red(domingo), domingoNocturno: red(domingoNocturno),
+    ord: red(ord), incapacidad: red(incapacidad), extra: red(extra), extraNocturna: red(extraNocturna), domingo: red(domingo), domingoNocturno: red(domingoNocturno),
     septimo: red(septimo), asueto: red(asueto), asuetoExtraDiurna: red(asuetoExtraDiurna), asuetoExtraNocturna: red(asuetoExtraNocturna), otrosIngresos: red(otrosIngresos),
     devengado: red(devengado), isss, afp, rentaSugerida: red(rentaSugerida), renta,
     prestamos, otrosDescuentos, descuentos: red(descuentos), neto: red(devengado - descuentos)
@@ -912,7 +915,7 @@ function calcularPreviewPlanilla() {
   document.getElementById('p-afp').value = money(calc.afp);
   document.getElementById('p-renta-sugerida').value = money(calc.rentaSugerida);
   document.getElementById('p-domingo-pago').value = money(calc.domingo + calc.domingoNocturno);
-  document.getElementById('p-asistencia-resultado').value = `Ordinarias pagadas: ${calc.horasOrdinariasPagadas.toFixed(2)} h · Séptimo pagado: ${calc.horasSeptimoPagadas.toFixed(2)} h`;
+  document.getElementById('p-asistencia-resultado').value = `Ordinarias: ${calc.horasOrdinariasPagadas.toFixed(2)} h · Incapacidad: ${calc.horasIncapacidadPagadas.toFixed(2)} h · Séptimo: ${calc.horasSeptimoPagadas.toFixed(2)} h`;
   document.getElementById('p-prev-devengado').textContent = money(calc.devengado);
   document.getElementById('p-prev-descuentos').textContent = money(calc.descuentos);
   document.getElementById('p-prev-neto').textContent = money(calc.neto);
@@ -1428,7 +1431,7 @@ function totalesDetallePlanilla(planillas) {
     total.asuetoExtraN += num(p.hAsuetoExtraNocturna);
     total.horasPermiso += num(p.hPermiso);
     total.diasFalta += num(p.diasSinPermiso);
-    total.diasIncapacidad += num(p.diasIncapacidad);
+    total.horasIncapacidad += num(c.horasIncapacidadPagadas);
     total.devengado += num(p.calc?.devengado);
     total.renta += num(p.calc?.renta);
     total.isss += num(p.calc?.isss);
@@ -1436,10 +1439,10 @@ function totalesDetallePlanilla(planillas) {
     total.otros += num(p.calc?.prestamos) + num(p.calc?.otrosDescuentos);
     total.neto += num(p.calc?.neto);
     return total;
-  }, { horasD: 0, extraD: 0, extraN: 0, domingoD: 0, domingoN: 0, horasSeptimo: 0, horasAsueto: 0, asuetoExtraD: 0, asuetoExtraN: 0, horasPermiso: 0, diasFalta: 0, diasIncapacidad: 0, devengado: 0, renta: 0, isss: 0, afp: 0, otros: 0, neto: 0 });
+  }, { horasD: 0, extraD: 0, extraN: 0, domingoD: 0, domingoN: 0, horasSeptimo: 0, horasAsueto: 0, asuetoExtraD: 0, asuetoExtraN: 0, horasPermiso: 0, diasFalta: 0, horasIncapacidad: 0, devengado: 0, renta: 0, isss: 0, afp: 0, otros: 0, neto: 0 });
 }
 function filaTotalesDetalle(label, total, clase = '') {
-  return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.extraD).toFixed(2)}</th><th>${num(total.extraN).toFixed(2)}</th><th>${num(total.domingoD).toFixed(2)}</th><th>${num(total.domingoN).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${num(total.asuetoExtraD).toFixed(2)}</th><th>${num(total.asuetoExtraN).toFixed(2)}</th><th>${num(total.horasPermiso).toFixed(2)}</th><th>${num(total.diasFalta).toFixed(0)}</th><th>${num(total.diasIncapacidad).toFixed(0)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
+  return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.extraD).toFixed(2)}</th><th>${num(total.extraN).toFixed(2)}</th><th>${num(total.domingoD).toFixed(2)}</th><th>${num(total.domingoN).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${num(total.asuetoExtraD).toFixed(2)}</th><th>${num(total.asuetoExtraN).toFixed(2)}</th><th>${num(total.horasPermiso).toFixed(2)}</th><th>${num(total.diasFalta).toFixed(0)}</th><th>${num(total.horasIncapacidad).toFixed(2)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
 }
 function abrirDetallePlanilla() {
   const planillasReporte = planillasSemanaSeleccionada();
@@ -1456,12 +1459,12 @@ function abrirDetallePlanilla() {
     const filas = ordenadas.map(p => {
       const c = p.calc || {};
       const otros = num(c.prestamos) + num(c.otrosDescuentos);
-      return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(p.empleadoSnapshot.salarioHora)}</td><td>${num(c.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}</td><td>${num(p.hExtra).toFixed(2)}</td><td>${num(p.hExtraNocturna).toFixed(2)}</td><td>${num(p.hDomingo ?? p.extraDias?.domingo).toFixed(2)}</td><td>${num(p.hDomingoNocturno ?? p.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(c.horasSeptimoPagadas ?? p.hSeptimo).toFixed(2)}</td><td>${num(p.hAsueto).toFixed(2)}</td><td>${num(p.hAsuetoExtraDiurna).toFixed(2)}</td><td>${num(p.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(p.hPermiso).toFixed(2)}</td><td>${num(p.diasSinPermiso).toFixed(0)}</td><td>${num(p.diasIncapacidad).toFixed(0)}</td><td>${money(c.devengado)}</td><td>${money(c.renta)}</td><td>${money(c.isss)}</td><td>${money(c.afp)}</td><td>${money(otros)}</td><td>${money(c.neto)}</td></tr>`;
+      return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(p.empleadoSnapshot.salarioHora)}</td><td>${num(c.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}</td><td>${num(p.hExtra).toFixed(2)}</td><td>${num(p.hExtraNocturna).toFixed(2)}</td><td>${num(p.hDomingo ?? p.extraDias?.domingo).toFixed(2)}</td><td>${num(p.hDomingoNocturno ?? p.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(c.horasSeptimoPagadas ?? p.hSeptimo).toFixed(2)}</td><td>${num(p.hAsueto).toFixed(2)}</td><td>${num(p.hAsuetoExtraDiurna).toFixed(2)}</td><td>${num(p.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(p.hPermiso).toFixed(2)}</td><td>${num(p.diasSinPermiso).toFixed(0)}</td><td>${num(c.horasIncapacidadPagadas).toFixed(2)}</td><td>${money(c.devengado)}</td><td>${money(c.renta)}</td><td>${money(c.isss)}</td><td>${money(c.afp)}</td><td>${money(otros)}</td><td>${money(c.neto)}</td></tr>`;
     }).join('');
     return `<tr class="area-title-row"><th colspan="20">ÁREA: ${esc(area.toUpperCase())}</th></tr>${filas}${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}`;
   }).join('');
   const totalGeneral = totalesDetallePlanilla(planillasReporte);
-  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>$/Hora</th><th>Ord. D.</th><th>Extra D.</th><th>Extra N.</th><th>Dom. D.</th><th>Dom. N.</th><th>Sépt.</th><th>Asueto</th><th>As. Ext. D.</th><th>As. Ext. N.</th><th>Permiso h</th><th>Faltas d</th><th>Incap. d</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros</th><th>Neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>$/Hora</th><th>Ord. D.</th><th>Extra D.</th><th>Extra N.</th><th>Dom. D.</th><th>Dom. N.</th><th>Sépt.</th><th>Asueto</th><th>As. Ext. D.</th><th>As. Ext. N.</th><th>Permiso h</th><th>Faltas d</th><th>Incap. h</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros</th><th>Neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
   document.getElementById('payroll-detail-overlay').dataset.reportType = 'payroll';
   document.getElementById('payroll-detail-overlay').classList.add('open');
@@ -1563,7 +1566,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${line('H. Ext. Asueto D.:', p?.hAsuetoExtraDiurna, c.asuetoExtraDiurna)}
                 ${line('H. Ext. Asueto N.:', p?.hAsuetoExtraNocturna, c.asuetoExtraNocturna)}
                 ${asistenciaNota}
-                ${line('Incapacidad (días):', p?.diasIncapacidad, 0)}
+                ${line('H. Incapacidad:', c.horasIncapacidadPagadas, c.incapacidad)}
                 ${line('Domingo laborado:', p?.hDomingo ?? p?.extraDias?.domingo, c.domingo)}
                 ${line('Domingo nocturno:', p?.hDomingoNocturno ?? p?.extraNocturnasDias?.domingo, c.domingoNocturno)}
                 ${incomeTotalLine('Sueldo Devengado:', c.devengado)}
