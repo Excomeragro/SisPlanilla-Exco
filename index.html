@@ -127,11 +127,12 @@
               <label>Extra nocturna asueto<input class="zero-ref" type="number" id="m-asueto-extra-nocturna" step="0.5" min="0" placeholder="0"></label>
               <label>Horas de permiso<input class="zero-ref" type="number" id="m-h-permiso" step="0.5" min="0" placeholder="0"></label>
               <label>Días sin permiso<input class="zero-ref" type="number" id="m-dias-sin-permiso" step="1" min="0" placeholder="0"></label>
+              <label>Días de incapacidad<input class="zero-ref" type="number" id="m-dias-incapacidad" step="1" min="0" placeholder="0"></label>
             </div></div>
           </div>
           <div class="btn-row"><button class="btn btn-primary" onclick="guardarAjusteMasivo()">Guardar horas del seleccionado</button><button class="btn btn-ghost" onclick="limpiarAjusteMasivo()">Limpiar búsqueda</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Empleado seleccionado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Permiso / faltas</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado seleccionado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Permiso / faltas / incap.</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr></tbody></table></div>
         <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>
       </div>
       <div class="card" id="planilla-form-card">
@@ -175,6 +176,7 @@
               <div class="form-group"><label>Extra nocturna en asueto (3.25×)</label><input class="zero-ref" type="number" id="p-asueto-extra-nocturna" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Horas de permiso sin goce</label><input class="zero-ref" type="number" id="p-h-permiso" step="0.5" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group"><label>Días sin permiso (8 h c/u)</label><input class="zero-ref" type="number" id="p-dias-sin-permiso" step="1" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Días de incapacidad (8 h c/u)</label><input class="zero-ref" type="number" id="p-dias-incapacidad" step="1" min="0" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group span2"><label>Resultado de asistencia</label><input type="text" id="p-asistencia-resultado" readonly></div>
               <div class="form-divider">Deducciones</div>
               <div class="form-group"><label>ISSS según empleado 3%</label><input type="text" id="p-isss" readonly></div>

@@ -3,7 +3,7 @@ const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
-const PAYROLL_CALC_VERSION = 4;
+const PAYROLL_CALC_VERSION = 5;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
   { key: 'lunes', label: 'Lunes' },
@@ -108,6 +108,7 @@ function normalizarPlanilla(p) {
     hAsuetoExtraNocturna: num(p.hAsuetoExtraNocturna),
     hPermiso: num(p.hPermiso),
     diasSinPermiso: Math.max(0, Math.floor(num(p.diasSinPermiso))),
+    diasIncapacidad: Math.max(0, Math.floor(num(p.diasIncapacidad))),
     otrosIngresos: num(p.otrosIngresos ?? p.otrosIng),
     prestamos: num(p.prestamos),
     otrosDescuentos: num(p.otrosDescuentos ?? p.otrosDesc),
@@ -588,8 +589,10 @@ function calcularPago(d) {
   const salario = num(d.empleado?.salarioHora ?? d.salarioHora);
   const horasPermiso = Math.max(0, num(d.hPermiso));
   const diasSinPermiso = Math.max(0, Math.floor(num(d.diasSinPermiso)));
+  const diasIncapacidad = Math.max(0, Math.floor(num(d.diasIncapacidad)));
   const horasAusencia = diasSinPermiso * 8;
-  const horasOrdinariasPagadas = Math.max(0, num(d.hOrdinarias) - horasPermiso - horasAusencia);
+  const horasIncapacidad = diasIncapacidad * 8;
+  const horasOrdinariasPagadas = Math.max(0, num(d.hOrdinarias) - horasPermiso - horasAusencia - horasIncapacidad);
   const horasSeptimoPagadas = diasSinPermiso > 0 ? 0 : num(d.hSeptimo);
   const ord = horasOrdinariasPagadas * salario;
   const horasExtraLaboral = d.extraDias ? totalHorasExtraLaboral(d.extraDias) : num(d.hExtra);
@@ -794,11 +797,12 @@ function leerAjusteMasivoForm() {
     hAsuetoExtraDiurna: num(document.getElementById('m-asueto-extra-diurna').value),
     hAsuetoExtraNocturna: num(document.getElementById('m-asueto-extra-nocturna').value),
     hPermiso: num(document.getElementById('m-h-permiso').value),
-    diasSinPermiso: Math.max(0, Math.floor(num(document.getElementById('m-dias-sin-permiso').value)))
+    diasSinPermiso: Math.max(0, Math.floor(num(document.getElementById('m-dias-sin-permiso').value))),
+    diasIncapacidad: Math.max(0, Math.floor(num(document.getElementById('m-dias-incapacidad').value)))
   };
 }
 function cargarAjusteMasivoForm(ajuste) {
-  const datos = ajuste || { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0 };
+  const datos = ajuste || { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0, diasIncapacidad: 0 };
   ['lunes','martes','miercoles','jueves','viernes','sabado'].forEach(dia => {
     ponerNumeroReferencia('m-extra-' + dia, datos.extraDias?.[dia]);
     ponerNumeroReferencia('m-extra-noct-' + dia, datos.extraNocturnasDias?.[dia]);
@@ -810,6 +814,7 @@ function cargarAjusteMasivoForm(ajuste) {
   ponerNumeroReferencia('m-asueto-extra-nocturna', datos.hAsuetoExtraNocturna);
   ponerNumeroReferencia('m-h-permiso', datos.hPermiso);
   ponerNumeroReferencia('m-dias-sin-permiso', datos.diasSinPermiso);
+  ponerNumeroReferencia('m-dias-incapacidad', datos.diasIncapacidad);
 }
 function buscarEmpleadoMasivo() {
   const input = document.getElementById('m-empleado-buscar');
@@ -818,7 +823,7 @@ function buscarEmpleadoMasivo() {
   document.getElementById('m-empleado').value = emp?.id || '';
   document.getElementById('m-empleado-info').value = emp ? `${emp.departamento} · ${emp.cargo}` : '';
   if (emp && !ajustesPlanillaMasiva[emp.id]) {
-    ajustesPlanillaMasiva[emp.id] = { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0 };
+    ajustesPlanillaMasiva[emp.id] = { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0, diasIncapacidad: 0 };
     renderPlanillaMasiva();
   }
   cargarAjusteMasivoForm(emp ? ajustesPlanillaMasiva[emp.id] : null);
@@ -866,7 +871,7 @@ function renderPlanillaMasiva() {
   }
   tbody.innerHTML = ajustes.map(([id, ajuste]) => {
     const emp = empleadoPorId(id);
-    return `<tr class="mass-selected-row"><td><div class="col-name">${esc(emp.nombre)} <span class="badge badge-green">Seleccionado</span></div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(ajuste.hPermiso).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} d</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
+    return `<tr class="mass-selected-row"><td><div class="col-name">${esc(emp.nombre)} <span class="badge badge-green">Seleccionado</span></div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(ajuste.hPermiso).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} f / ${num(ajuste.diasIncapacidad).toFixed(0)} i</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
   }).join('');
 }
 function datosPlanillaForm() {
@@ -891,6 +896,7 @@ function datosPlanillaForm() {
     hAsuetoExtraNocturna: num(document.getElementById('p-asueto-extra-nocturna').value),
     hPermiso: num(document.getElementById('p-h-permiso').value),
     diasSinPermiso: Math.max(0, Math.floor(num(document.getElementById('p-dias-sin-permiso').value))),
+    diasIncapacidad: Math.max(0, Math.floor(num(document.getElementById('p-dias-incapacidad').value))),
     otrosIngresos: 0,
     aplicarRenta: document.getElementById('p-aplicar-renta').checked,
     aplicarIsss: emp?.descontarIsss !== false,
@@ -935,6 +941,7 @@ function construirRegistroPlanilla(d, id) {
     hAsuetoExtraNocturna: d.hAsuetoExtraNocturna,
     hPermiso: d.hPermiso,
     diasSinPermiso: d.diasSinPermiso,
+    diasIncapacidad: d.diasIncapacidad,
     otrosIngresos: d.otrosIngresos,
     prestamos: d.prestamos,
     otrosDescuentos: d.otrosDescuentos,
@@ -960,7 +967,7 @@ function guardarRegistroPlanilla() {
 }
 function datosPlanillaMasivaEmpleado(emp) {
   const { inicio, fin } = semanaMasivaActual();
-  const ajuste = ajustesPlanillaMasiva[emp.id] || { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0 };
+  const ajuste = ajustesPlanillaMasiva[emp.id] || { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0, diasIncapacidad: 0 };
   const extraDias = normalizarExtraDias(ajuste.extraDias);
   const extraNocturnasDias = normalizarExtraDias(ajuste.extraNocturnasDias);
   extraDias.domingo = num(ajuste.hDomingo);
@@ -984,6 +991,7 @@ function datosPlanillaMasivaEmpleado(emp) {
     hAsuetoExtraNocturna: num(ajuste.hAsuetoExtraNocturna),
     hPermiso: num(ajuste.hPermiso),
     diasSinPermiso: Math.max(0, Math.floor(num(ajuste.diasSinPermiso))),
+    diasIncapacidad: Math.max(0, Math.floor(num(ajuste.diasIncapacidad))),
     otrosIngresos: 0,
     aplicarRenta: !!emp.aplicarRenta,
     aplicarIsss: emp.descontarIsss !== false,
@@ -1039,6 +1047,7 @@ function editarPlanilla(id) {
   ponerNumeroReferencia('p-asueto-extra-nocturna', p.hAsuetoExtraNocturna);
   ponerNumeroReferencia('p-h-permiso', p.hPermiso);
   ponerNumeroReferencia('p-dias-sin-permiso', p.diasSinPermiso);
+  ponerNumeroReferencia('p-dias-incapacidad', p.diasIncapacidad);
   document.getElementById('p-aplicar-renta').checked = p.aplicarRenta;
   ponerNumeroReferencia('p-prestamos', p.prestamos);
   ponerNumeroReferencia('p-otros-descuentos', p.otrosDescuentos);
@@ -1419,6 +1428,7 @@ function totalesDetallePlanilla(planillas) {
     total.asuetoExtraN += num(p.hAsuetoExtraNocturna);
     total.horasPermiso += num(p.hPermiso);
     total.diasFalta += num(p.diasSinPermiso);
+    total.diasIncapacidad += num(p.diasIncapacidad);
     total.devengado += num(p.calc?.devengado);
     total.renta += num(p.calc?.renta);
     total.isss += num(p.calc?.isss);
@@ -1426,10 +1436,10 @@ function totalesDetallePlanilla(planillas) {
     total.otros += num(p.calc?.prestamos) + num(p.calc?.otrosDescuentos);
     total.neto += num(p.calc?.neto);
     return total;
-  }, { horasD: 0, extraD: 0, extraN: 0, domingoD: 0, domingoN: 0, horasSeptimo: 0, horasAsueto: 0, asuetoExtraD: 0, asuetoExtraN: 0, horasPermiso: 0, diasFalta: 0, devengado: 0, renta: 0, isss: 0, afp: 0, otros: 0, neto: 0 });
+  }, { horasD: 0, extraD: 0, extraN: 0, domingoD: 0, domingoN: 0, horasSeptimo: 0, horasAsueto: 0, asuetoExtraD: 0, asuetoExtraN: 0, horasPermiso: 0, diasFalta: 0, diasIncapacidad: 0, devengado: 0, renta: 0, isss: 0, afp: 0, otros: 0, neto: 0 });
 }
 function filaTotalesDetalle(label, total, clase = '') {
-  return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.extraD).toFixed(2)}</th><th>${num(total.extraN).toFixed(2)}</th><th>${num(total.domingoD).toFixed(2)}</th><th>${num(total.domingoN).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${num(total.asuetoExtraD).toFixed(2)}</th><th>${num(total.asuetoExtraN).toFixed(2)}</th><th>${num(total.horasPermiso).toFixed(2)}</th><th>${num(total.diasFalta).toFixed(0)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
+  return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.extraD).toFixed(2)}</th><th>${num(total.extraN).toFixed(2)}</th><th>${num(total.domingoD).toFixed(2)}</th><th>${num(total.domingoN).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${num(total.asuetoExtraD).toFixed(2)}</th><th>${num(total.asuetoExtraN).toFixed(2)}</th><th>${num(total.horasPermiso).toFixed(2)}</th><th>${num(total.diasFalta).toFixed(0)}</th><th>${num(total.diasIncapacidad).toFixed(0)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
 }
 function abrirDetallePlanilla() {
   const planillasReporte = planillasSemanaSeleccionada();
@@ -1553,7 +1563,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${line('H. Ext. Asueto D.:', p?.hAsuetoExtraDiurna, c.asuetoExtraDiurna)}
                 ${line('H. Ext. Asueto N.:', p?.hAsuetoExtraNocturna, c.asuetoExtraNocturna)}
                 ${asistenciaNota}
-                ${moneyLine('Incapacidad:', 0)}
+                ${line('Incapacidad (días):', p?.diasIncapacidad, 0)}
                 ${line('Domingo laborado:', p?.hDomingo ?? p?.extraDias?.domingo, c.domingo)}
                 ${line('Domingo nocturno:', p?.hDomingoNocturno ?? p?.extraNocturnasDias?.domingo, c.domingoNocturno)}
                 ${incomeTotalLine('Sueldo Devengado:', c.devengado)}
@@ -1712,7 +1722,7 @@ function renderPlanilla() {
       <td>${i + 1}</td>
       <td><div class="col-name">${esc(p.empleadoSnapshot.nombre)}</div><div class="col-sub">${esc(p.empleadoSnapshot.cargo)} · ${esc(p.empleadoSnapshot.departamento)}</div></td>
       <td>${esc(periodoTexto(p))}</td>
-      <td>${num(p.calc?.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}${num(p.hPermiso) > 0 || num(p.diasSinPermiso) > 0 ? `<div class="col-sub">Perm. ${num(p.hPermiso).toFixed(1)}h · Faltas ${num(p.diasSinPermiso).toFixed(0)}d</div>` : ''}</td><td>${num(p.hExtra + num(p.hExtraNocturna)).toFixed(2)}</td><td>${esc([resumenDiasExtra(p.extraDias) ? 'D: ' + resumenDiasExtra(p.extraDias) : '', resumenDiasExtra(p.extraNocturnasDias) ? 'N: ' + resumenDiasExtra(p.extraNocturnasDias) : ''].filter(Boolean).join(' · ') || '-')}</td>
+      <td>${num(p.calc?.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}${num(p.hPermiso) > 0 || num(p.diasSinPermiso) > 0 || num(p.diasIncapacidad) > 0 ? `<div class="col-sub">Perm. ${num(p.hPermiso).toFixed(1)}h · Faltas ${num(p.diasSinPermiso).toFixed(0)}d · Incap. ${num(p.diasIncapacidad).toFixed(0)}d</div>` : ''}</td><td>${num(p.hExtra + num(p.hExtraNocturna)).toFixed(2)}</td><td>${esc([resumenDiasExtra(p.extraDias) ? 'D: ' + resumenDiasExtra(p.extraDias) : '', resumenDiasExtra(p.extraNocturnasDias) ? 'N: ' + resumenDiasExtra(p.extraNocturnasDias) : ''].filter(Boolean).join(' · ') || '-')}</td>
       <td class="col-money">${money(p.calc.devengado)}</td><td class="col-discount">${money(p.calc.descuentos)}</td><td class="col-net">${money(p.calc.neto)}</td>
       <td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="generarBoletaDesdePlanilla('${p.id}')">Ver boleta</button></td>
       <td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarPlanilla('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarPlanilla('${p.id}')">Quitar</button></td>
