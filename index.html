@@ -132,6 +132,39 @@
           </div>
           <div class="btn-row"><button class="btn btn-primary" onclick="guardarAjusteMasivo()">Guardar horas del seleccionado</button><button class="btn btn-ghost" onclick="limpiarAjusteMasivo()">Limpiar búsqueda</button></div>
         </div>
+        <div class="card-body mass-quick-entry">
+          <div class="section-mini-head">
+            <div>
+              <h3>Carga rapida de horas</h3>
+              <p>Llena solo las casillas de quienes tuvieron horas especiales. Los demas quedan con la semana normal.</p>
+            </div>
+            <div class="form-group mass-quick-search"><label>Buscar</label><input type="search" id="m-rapida-buscar" placeholder="Nombre o DUI" oninput="filtrarPlanillaMasivaRapida()"></div>
+          </div>
+          <div class="table-wrap mass-quick-wrap">
+            <table class="mass-quick-table">
+              <thead>
+                <tr>
+                  <th rowspan="2">Empleado</th>
+                  <th colspan="6">Extra diurna L-S</th>
+                  <th colspan="6">Extra nocturna L-S</th>
+                  <th colspan="3">Asueto</th>
+                  <th colspan="2">Domingo</th>
+                  <th colspan="3">Otros</th>
+                </tr>
+                <tr>
+                  <th>L</th><th>M</th><th>Mie</th><th>J</th><th>V</th><th>S</th>
+                  <th>L</th><th>M</th><th>Mie</th><th>J</th><th>V</th><th>S</th>
+                  <th>Normal</th><th>Extra D.</th><th>Extra N.</th>
+                  <th>Dia</th><th>Noche</th>
+                  <th>Perm.</th><th>Faltas</th><th>Incap.</th>
+                </tr>
+              </thead>
+              <tbody id="masiva-rapida-tbody">
+                <tr><td colspan="21"><div class="table-empty">Sin empleados para mostrar.</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div class="table-wrap"><table><thead><tr><th>Empleado seleccionado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Permiso / faltas / incap.</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr></tbody></table></div>
         <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>
       </div>

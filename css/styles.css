@@ -266,6 +266,62 @@
   .mass-hours-grid input { min-width: 0; }
   .mass-selected-row { background: #F0FDF4; }
   .mass-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); }
+  .section-mini-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .section-mini-head h3 { margin: 0 0 4px; font-size: 15px; }
+  .section-mini-head p { margin: 0; color: var(--muted); font-size: 12px; }
+  .mass-quick-entry { border-top: 1px solid var(--border); }
+  .mass-quick-search { min-width: 220px; margin: 0; }
+  .mass-quick-wrap { max-height: 560px; overflow: auto; border-top: 1px solid var(--border); }
+  .mass-quick-table {
+    min-width: 1480px;
+    table-layout: fixed;
+    font-size: 12px;
+  }
+  .mass-quick-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    text-align: center;
+    padding: 7px 6px;
+    white-space: nowrap;
+  }
+  .mass-quick-table thead tr:nth-child(2) th { top: 31px; }
+  .mass-quick-table td { padding: 5px; text-align: center; }
+  .mass-quick-table th:first-child,
+  .mass-quick-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #fff;
+    text-align: left;
+    width: 250px;
+  }
+  .mass-quick-table thead th:first-child { background: #0F172A; }
+  .mass-name-cell { min-width: 250px; }
+  .mass-cell-input {
+    width: 58px;
+    min-width: 58px;
+    height: 30px;
+    padding: 5px 6px;
+    text-align: center;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
   .form-divider {
     grid-column: 1 / -1;
     display: flex;

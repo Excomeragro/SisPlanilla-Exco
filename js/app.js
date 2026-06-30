@@ -784,6 +784,33 @@ function setSemanaMasivaActual() {
   document.getElementById('m-fecha-inicio').value = iso(monday);
   document.getElementById('m-fecha-fin').value = iso(sunday);
 }
+function ajusteMasivoVacio() {
+  return {
+    extraDias: extraDiasVacio(),
+    extraNocturnasDias: extraDiasVacio(),
+    hAsueto: 0,
+    hDomingo: 0,
+    hAsuetoExtraDiurna: 0,
+    hAsuetoExtraNocturna: 0,
+    hPermiso: 0,
+    diasSinPermiso: 0,
+    diasIncapacidad: 0
+  };
+}
+function tieneValoresAjusteMasivo(ajuste) {
+  if (!ajuste) return false;
+  return totalHorasExtraLaboral(ajuste.extraDias) > 0 ||
+    totalHorasExtraLaboral(ajuste.extraNocturnasDias) > 0 ||
+    num(ajuste.extraDias?.domingo) > 0 ||
+    num(ajuste.extraNocturnasDias?.domingo) > 0 ||
+    num(ajuste.hAsueto) > 0 ||
+    num(ajuste.hDomingo) > 0 ||
+    num(ajuste.hAsuetoExtraDiurna) > 0 ||
+    num(ajuste.hAsuetoExtraNocturna) > 0 ||
+    num(ajuste.hPermiso) > 0 ||
+    num(ajuste.diasSinPermiso) > 0 ||
+    num(ajuste.diasIncapacidad) > 0;
+}
 function leerAjusteMasivoForm() {
   const extraDias = extraDiasVacio();
   const extraNocturnasDias = extraDiasVacio();
@@ -805,7 +832,7 @@ function leerAjusteMasivoForm() {
   };
 }
 function cargarAjusteMasivoForm(ajuste) {
-  const datos = ajuste || { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0, diasIncapacidad: 0 };
+  const datos = ajuste || ajusteMasivoVacio();
   ['lunes','martes','miercoles','jueves','viernes','sabado'].forEach(dia => {
     ponerNumeroReferencia('m-extra-' + dia, datos.extraDias?.[dia]);
     ponerNumeroReferencia('m-extra-noct-' + dia, datos.extraNocturnasDias?.[dia]);
@@ -826,7 +853,7 @@ function buscarEmpleadoMasivo() {
   document.getElementById('m-empleado').value = emp?.id || '';
   document.getElementById('m-empleado-info').value = emp ? `${emp.departamento} · ${emp.cargo}` : '';
   if (emp && !ajustesPlanillaMasiva[emp.id]) {
-    ajustesPlanillaMasiva[emp.id] = { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0, diasIncapacidad: 0 };
+    ajustesPlanillaMasiva[emp.id] = ajusteMasivoVacio();
     renderPlanillaMasiva();
   }
   cargarAjusteMasivoForm(emp ? ajustesPlanillaMasiva[emp.id] : null);
@@ -862,8 +889,92 @@ function limpiarAjusteMasivo() {
   document.getElementById('m-empleado-info').value = '';
   cargarAjusteMasivoForm();
 }
+function valorAjusteMasivoRapido(id, campo, dia) {
+  const ajuste = ajustesPlanillaMasiva[id];
+  if (!ajuste) return '';
+  const valor = dia ? ajuste[campo]?.[dia] : ajuste[campo];
+  return num(valor) > 0 ? num(valor) : '';
+}
+function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
+  const valor = valorAjusteMasivoRapido(id, campo, dia);
+  const diaArg = dia ? `'${dia}'` : 'null';
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref" type="number" step="${esc(step)}" min="0" placeholder="0" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)">`;
+}
+function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
+  const emp = empleadoPorId(id);
+  if (!emp) return;
+  const ajuste = ajustesPlanillaMasiva[id] || ajusteMasivoVacio();
+  if (dia) ajuste[campo][dia] = num(valor);
+  else ajuste[campo] = campo === 'diasSinPermiso' || campo === 'diasIncapacidad' ? Math.max(0, Math.floor(num(valor))) : num(valor);
+  if (tieneValoresAjusteMasivo(ajuste)) ajustesPlanillaMasiva[id] = ajuste;
+  else delete ajustesPlanillaMasiva[id];
+  actualizarContadorPlanillaMasiva();
+  renderResumenAjustesMasivos();
+}
+function filtrarPlanillaMasivaRapida() {
+  renderPlanillaMasivaRapida();
+}
+function actualizarContadorPlanillaMasiva() {
+  const badge = document.getElementById('masiva-empleados-count');
+  if (!badge) return;
+  const empleados = empleadosPlanillaMasiva();
+  const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
+  badge.textContent = `${empleados.length} empleados Â· ${ajustes.length} con ajustes`;
+}
+function renderResumenAjustesMasivos() {
+  const tbody = document.getElementById('masiva-ajustes-tbody');
+  if (!tbody) return;
+  const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
+  if (!ajustes.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = ajustes.map(([id, ajuste]) => {
+    const emp = empleadoPorId(id);
+    return `<tr class="mass-selected-row"><td><div class="col-name">${esc(emp.nombre)} <span class="badge badge-green">Ajuste</span></div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(ajuste.hPermiso).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} f / ${num(ajuste.diasIncapacidad).toFixed(0)} i</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
+  }).join('');
+}
+function renderPlanillaMasivaRapida() {
+  const tbody = document.getElementById('masiva-rapida-tbody');
+  if (!tbody) return;
+  const busqueda = textoNormalizado(document.getElementById('m-rapida-buscar')?.value);
+  const empleados = empleadosPlanillaMasiva().filter(emp => !busqueda || textoNormalizado(emp.nombre).includes(busqueda) || textoNormalizado(emp.dui).includes(busqueda));
+  if (!empleados.length) {
+    tbody.innerHTML = '<tr><td colspan="21"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = empleados.map(emp => {
+    const id = emp.id;
+    return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} Â· ${esc(emp.cargo)}</div></td>
+      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'lunes', 'Lunes extra')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'martes', 'Martes extra')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'miercoles', 'Miercoles extra')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'jueves', 'Jueves extra')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'viernes', 'Viernes extra')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'sabado', 'Sabado extra')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'lunes', 'Lunes nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'martes', 'Martes nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'miercoles', 'Miercoles nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'jueves', 'Jueves nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'viernes', 'Viernes nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'sabado', 'Sabado nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'hPermiso', null, 'Permiso')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'diasSinPermiso', null, 'Faltas', '1')}</td>
+      <td>${inputAjusteMasivoRapido(id, 'diasIncapacidad', null, 'Incapacidad', '1')}</td></tr>`;
+  }).join('');
+}
 function renderPlanillaMasiva() {
   const empleados = empleadosPlanillaMasiva();
+  document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${ajustesPlanillaMasiva[e.id] ? 'Seleccionado - ' : ''}${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
+  actualizarContadorPlanillaMasiva();
+  renderResumenAjustesMasivos();
+  renderPlanillaMasivaRapida();
+  return;
   const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
   document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${ajustesPlanillaMasiva[e.id] ? 'Seleccionado · ' : ''}${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
   document.getElementById('masiva-empleados-count').textContent = `${empleados.length} empleados · ${ajustes.length} seleccionados`;
