@@ -280,7 +280,7 @@
   .mass-quick-search input { height: 34px; }
   .mass-quick-wrap { max-height: 520px; overflow: auto; border-top: 1px solid var(--border); }
   .mass-quick-table {
-    min-width: 1120px;
+    min-width: 1040px;
     table-layout: fixed;
     font-size: 11px;
     border-collapse: separate;
@@ -291,10 +291,11 @@
     top: 0;
     z-index: 2;
     text-align: center;
-    padding: 7px 4px;
+    padding: 5px 4px;
     white-space: nowrap;
     line-height: 1.1;
   }
+  .mass-quick-table thead tr:nth-child(2) th { top: 25px; }
   .mass-quick-table td { padding: 3px 4px; text-align: center; height: 36px; }
   .mass-quick-table th:first-child,
   .mass-quick-table td:first-child {

@@ -940,7 +940,7 @@ function renderPlanillaMasivaRapida() {
   const busqueda = textoNormalizado(document.getElementById('m-rapida-buscar')?.value);
   const empleados = empleadosPlanillaMasiva().filter(emp => !busqueda || textoNormalizado(emp.nombre).includes(busqueda) || textoNormalizado(emp.dui).includes(busqueda));
   if (!empleados.length) {
-    tbody.innerHTML = '<tr><td colspan="21"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="18"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
     return;
   }
   tbody.innerHTML = empleados.map(emp => {
@@ -962,10 +962,7 @@ function renderPlanillaMasivaRapida() {
       <td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')}</td>
       <td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td>
       <td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'hPermiso', null, 'Permiso')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'diasSinPermiso', null, 'Faltas', '1')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'diasIncapacidad', null, 'Incapacidad', '1')}</td></tr>`;
+      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td></tr>`;
   }).join('');
 }
 function renderPlanillaMasiva() {
