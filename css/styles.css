@@ -289,24 +289,28 @@
   .mass-quick-table th {
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 6;
+    background: #0F172A;
+    color: #fff;
     text-align: center;
     padding: 5px 4px;
     white-space: nowrap;
     line-height: 1.1;
+    height: 26px;
   }
-  .mass-quick-table thead tr:nth-child(2) th { top: 25px; }
+  .mass-quick-table thead tr:nth-child(2) th { top: 26px; height: 24px; }
+  .mass-quick-table thead tr:nth-child(2) th { box-shadow: 0 2px 0 rgba(15,23,42,.12); }
   .mass-quick-table td { padding: 3px 4px; text-align: center; height: 36px; }
   .mass-quick-table th:first-child,
   .mass-quick-table td:first-child {
     position: sticky;
     left: 0;
-    z-index: 3;
+    z-index: 2;
     background: #fff;
     text-align: left;
     width: 210px;
   }
-  .mass-quick-table thead th:first-child { z-index: 4; background: #0F172A; }
+  .mass-quick-table thead th:first-child { z-index: 7; background: #0F172A; }
   .mass-name-cell { min-width: 210px; }
   .mass-name-cell .col-name { font-size: 11px; line-height: 1.15; }
   .mass-name-cell .col-sub { font-size: 10px; margin-top: 2px; }
