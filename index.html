@@ -136,7 +136,7 @@
           <div class="section-mini-head">
             <div>
               <h3>Carga rapida de horas</h3>
-              <p>Llena solo las casillas de quienes tuvieron horas especiales. Los demas quedan con la semana normal.</p>
+              <p>1. Escribe horas solo donde aplique. 2. Pulsa Crear planillas de todos. 3. Pulsa Crear boletas de la semana.</p>
             </div>
             <div class="form-group mass-quick-search"><label>Buscar</label><input type="search" id="m-rapida-buscar" placeholder="Nombre o DUI" oninput="filtrarPlanillaMasivaRapida()"></div>
           </div>
@@ -144,19 +144,12 @@
             <table class="mass-quick-table">
               <thead>
                 <tr>
-                  <th rowspan="2">Empleado</th>
-                  <th colspan="6">Extra diurna L-S</th>
-                  <th colspan="6">Extra nocturna L-S</th>
-                  <th colspan="3">Asueto</th>
-                  <th colspan="2">Domingo</th>
-                  <th colspan="3">Otros</th>
-                </tr>
-                <tr>
-                  <th>L</th><th>M</th><th>Mie</th><th>J</th><th>V</th><th>S</th>
-                  <th>L</th><th>M</th><th>Mie</th><th>J</th><th>V</th><th>S</th>
-                  <th>Normal</th><th>Extra D.</th><th>Extra N.</th>
-                  <th>Dia</th><th>Noche</th>
-                  <th>Perm.</th><th>Faltas</th><th>Incap.</th>
+                  <th>Empleado</th>
+                  <th title="Extra diurna lunes">ED L</th><th title="Extra diurna martes">ED M</th><th title="Extra diurna miercoles">ED X</th><th title="Extra diurna jueves">ED J</th><th title="Extra diurna viernes">ED V</th><th title="Extra diurna sabado">ED S</th>
+                  <th title="Extra nocturna lunes">EN L</th><th title="Extra nocturna martes">EN M</th><th title="Extra nocturna miercoles">EN X</th><th title="Extra nocturna jueves">EN J</th><th title="Extra nocturna viernes">EN V</th><th title="Extra nocturna sabado">EN S</th>
+                  <th title="Asueto laborado">Asu</th><th title="Extra diurna de asueto">Asu ED</th><th title="Extra nocturna de asueto">Asu EN</th>
+                  <th title="Domingo laborado">Dom D</th><th title="Domingo nocturno">Dom N</th>
+                  <th title="Horas de permiso">Perm</th><th title="Dias sin permiso">Faltas</th><th title="Dias de incapacidad">Incap</th>
                 </tr>
               </thead>
               <tbody id="masiva-rapida-tbody">
