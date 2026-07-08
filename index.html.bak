@@ -53,10 +53,6 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 3 3 5-7"></path></svg>
       Historial laboral
     </button>
-    <button class="sidebar-btn" data-tab="ganancias-mensuales" onclick="showTab('ganancias-mensuales')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20M7 7h10M7 12h10M7 17h10"></path></svg>
-      Ganancias mensuales
-    </button>
     <button class="sidebar-btn" id="sidebar-sync-btn" onclick="sincronizarAhoraSupabase()" title="Guardar los datos actuales en Supabase">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 10-2.34 5.66"></path><path d="M20 4v7h-7"></path></svg>
       Sincronizar
@@ -298,43 +294,6 @@
       <div class="card">
         <div class="card-header"><h2>Historial de pagos</h2><button class="btn btn-success btn-sm" onclick="imprimirHistorialSeleccionado()">Imprimir seleccionados</button><span class="badge badge-green" id="historial-count">0 pagos</span></div>
         <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="historial-select-all" onchange="toggleHistorialSeleccionado(this.checked)"></th><th>Fecha</th><th>Semana pagada</th><th>Devengado</th><th>ISSS</th><th>AFP</th><th>Renta</th><th>Otros desc.</th><th>Neto</th><th>Acciones</th></tr></thead><tbody id="historial-tbody"></tbody><tfoot id="historial-tfoot"></tfoot></table></div>
-      </div>
-    </section>
-
-    <section class="view" id="view-ganancias-mensuales">
-      <div class="page-head"><div><h1>Ganancias mensuales</h1><p>Historial de ganancias netas mensuales de todos los empleados, indicando el rango de fechas de cada período.</p></div></div>
-      <div class="card">
-        <div class="card-header"><h2>Filtros y opciones</h2></div>
-        <div class="card-body">
-          <div class="form-grid">
-            <div class="form-group"><label>Año</label><input type="number" id="gm-anio" min="2020" max="2030" value="2026" oninput="renderGananciasMenusuales()"></div>
-            <div class="form-group"><label>Mes</label><select id="gm-mes" onchange="renderGananciasMenusuales()"><option value="">Todos los meses</option><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select></div>
-            <div class="form-group"><label>Estado del empleado</label><select id="gm-estado" onchange="renderGananciasMenusuales()"><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></div>
-            <div class="form-group"><label>Búsqueda</label><input type="search" id="gm-buscar" placeholder="Nombre o DUI" oninput="renderGananciasMenusuales()"></div>
-            <button class="btn btn-success" onclick="exportarGananciasMensuales()">Exportar a Excel</button>
-            <button class="btn btn-primary" onclick="imprimirGananciasMensuales()">Imprimir</button>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><h2>Resumen de ganancias mensuales</h2><span class="badge badge-green" id="gm-count">0 registros</span></div>
-        <div class="table-wrap" style="overflow-x: auto;">
-          <table id="gm-tabla">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Empleado</th>
-                <th>DUI</th>
-                <th>Cargo</th>
-                <th>Departamento</th>
-                <th>Estado</th>
-                <th id="gm-header-meses"></th>
-              </tr>
-            </thead>
-            <tbody id="gm-tbody"></tbody>
-            <tfoot id="gm-tfoot"></tfoot>
-          </table>
-        </div>
       </div>
     </section>
 
