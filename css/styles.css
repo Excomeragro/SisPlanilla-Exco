@@ -322,6 +322,49 @@
     text-align: center;
     font-size: 12px;
   }
+  .mass-cell-input.mass-hours-filled,
+  .mass-cell-input[value]:not([value=""]),
+  input.visual-extra-filled {
+    background: #DCFCE7;
+    border-color: #16A34A;
+    color: #166534;
+    font-weight: 700;
+  }
+  .mass-name-cell.mass-name-has-extra {
+    background: #F0FDF4 !important;
+    color: #166534;
+    border-left: 4px solid #16A34A;
+  }
+  .mass-name-cell.mass-name-has-discount {
+    background: #FEF2F2 !important;
+    color: #B91C1C;
+    border-left: 4px solid #DC2626;
+  }
+  .mass-name-cell.mass-name-no-discount {
+    background: #FFFBEB !important;
+    color: #92400E;
+    border-left: 4px solid #F59E0B;
+  }
+  input.visual-discount-active,
+  input.visual-no-discount {
+    font-weight: 700;
+  }
+  input.visual-discount-active {
+    background: #FEE2E2 !important;
+    border-color: #DC2626 !important;
+    color: #991B1B !important;
+  }
+  input.visual-no-discount {
+    background: #FEF3C7 !important;
+    border-color: #F59E0B !important;
+    color: #92400E !important;
+  }
+  .planilla-name-has-extra { color: #15803D; }
+  .planilla-name-has-discount { color: #B91C1C; }
+  .planilla-name-no-discount { color: #B45309; }
+  tr.planilla-name-has-extra .col-name { color: #15803D; }
+  tr.planilla-name-has-discount .col-name { color: #B91C1C; }
+  tr.planilla-name-no-discount .col-name { color: #B45309; }
   .sr-only {
     position: absolute;
     width: 1px;

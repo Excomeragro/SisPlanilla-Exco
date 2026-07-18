@@ -937,6 +937,28 @@ function valorAjusteMasivoRapido(id, campo, dia) {
   const valor = dia ? ajuste[campo]?.[dia] : ajuste[campo];
   return num(valor) > 0 ? num(valor) : '';
 }
+function clasesNombreMasivo(emp) {
+  const ajuste = ajustesPlanillaMasiva[emp.id];
+  const tieneExtra = tieneValoresAjusteMasivo(ajuste);
+  let tieneDescuento = false;
+  if (tieneExtra || num(emp.descuentoFijo) > 0 || emp.aplicarRenta) {
+    const calc = calcularPago(datosPlanillaMasivaEmpleado(emp));
+    tieneDescuento = num(calc.descuentos) > 0;
+  }
+  return [
+    tieneExtra ? 'mass-name-has-extra' : '',
+    tieneDescuento ? 'mass-name-has-discount' : '',
+    tieneExtra && !tieneDescuento ? 'mass-name-no-discount' : ''
+  ].filter(Boolean).join(' ');
+}
+function actualizarColorNombreMasivo(id) {
+  const emp = empleadoPorId(id);
+  const celda = [...document.querySelectorAll('[data-mass-employee]')].find(el => el.dataset.massEmployee === id);
+  if (!emp || !celda) return;
+  celda.classList.remove('mass-name-has-extra', 'mass-name-has-discount', 'mass-name-no-discount');
+  const clases = clasesNombreMasivo(emp);
+  if (clases) celda.classList.add(...clases.split(' '));
+}
 function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const valor = valorAjusteMasivoRapido(id, campo, dia);
   const diaArg = dia ? `'${dia}'` : 'null';
@@ -951,6 +973,9 @@ function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   if (tieneValoresAjusteMasivo(ajuste)) ajustesPlanillaMasiva[id] = ajuste;
   else delete ajustesPlanillaMasiva[id];
   guardarAjustesMasivosSemana();
+  const inputElement = document.getElementById('mq-' + campo + '-' + (dia || 'total') + '-' + id);
+  if (inputElement) inputElement.classList.toggle('mass-hours-filled', num(valor) > 0);
+  actualizarColorNombreMasivo(id);
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
 }
@@ -1007,6 +1032,14 @@ function renderPlanillaMasivaRapida() {
       <td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td>
       <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td></tr>`;
   }).join('');
+  tbody.querySelectorAll('tr').forEach((row, index) => {
+    const emp = empleados[index];
+    const cell = row.cells[0];
+    if (!emp || !cell) return;
+    cell.dataset.massEmployee = emp.id;
+    const clases = clasesNombreMasivo(emp);
+    if (clases) cell.classList.add(...clases.split(' '));
+  });
 }
 function renderPlanillaMasiva() {
   const empleados = empleadosPlanillaMasiva();
@@ -1071,7 +1104,34 @@ function calcularPreviewPlanilla() {
   document.getElementById('p-prev-descuentos').textContent = money(calc.descuentos);
   document.getElementById('p-prev-neto').textContent = money(calc.neto);
   document.getElementById('p-prev-afp-inst').textContent = d.empleado?.descontarAfp === false ? 'No aplica' : (d.empleado?.afpInstitucion || '-');
+  actualizarColoresPlanilla(d, calc);
   return calc;
+}
+function actualizarColoresPlanilla(d, calc) {
+  const extras = [
+    ...EXTRA_DIAS.map(day => ['p-extra-' + day.key, num(d.extraDias?.[day.key])]),
+    ...EXTRA_DIAS.map(day => ['p-extra-noct-' + day.key, num(d.extraNocturnasDias?.[day.key])]),
+    ['p-h-asueto', num(d.hAsueto)],
+    ['p-asueto-extra-diurna', num(d.hAsuetoExtraDiurna)],
+    ['p-asueto-extra-nocturna', num(d.hAsuetoExtraNocturna)]
+  ];
+  extras.forEach(([id, value]) => {
+    const input = document.getElementById(id);
+    if (input) input.classList.toggle('visual-extra-filled', value > 0);
+  });
+  const descuentos = [
+    ['p-isss', calc.isss],
+    ['p-afp', calc.afp],
+    ['p-renta-sugerida', d.aplicarRenta ? calc.renta : 0],
+    ['p-prestamos', d.prestamos],
+    ['p-otros-descuentos', d.otrosDescuentos]
+  ];
+  descuentos.forEach(([id, value]) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.classList.toggle('visual-discount-active', num(value) > 0);
+    input.classList.toggle('visual-no-discount', num(value) <= 0);
+  });
 }
 function construirRegistroPlanilla(d, id) {
   return {
@@ -1882,6 +1942,15 @@ function renderEmpleados() {
       <td class="actions-cell">${empleadoAplicaSemana(e) ? (empleadoDisponiblePlanilla(e) ? `<button class="btn btn-success btn-sm" onclick="crearPlanillaDesdeEmpleado('${e.id}')">Crear planilla</button>` : '<span class="badge badge-blue">Ya registrada</span>') : ''}<button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
     </tr>`).join('');
 }
+function clasesNombrePlanilla(p) {
+  const tieneExtra = num(p.hExtra) + num(p.hExtraNocturna) + num(p.hAsueto) + num(p.hAsuetoExtraDiurna) + num(p.hAsuetoExtraNocturna) + num(p.hDomingo) + num(p.hDomingoNocturno) > 0;
+  const tieneDescuento = num(p.calc?.descuentos) > 0;
+  return [
+    tieneExtra ? 'planilla-name-has-extra' : '',
+    tieneDescuento ? 'planilla-name-has-discount' : '',
+    tieneExtra && !tieneDescuento ? 'planilla-name-no-discount' : ''
+  ].filter(Boolean).join(' ');
+}
 function renderPlanilla() {
   const planillasSemana = planillasSemanaSeleccionada();
   const busqueda = textoNormalizado(document.getElementById('planilla-search')?.value);
@@ -1893,7 +1962,7 @@ function renderPlanilla() {
   let dev = 0, desc = 0, net = 0;
   tbody.innerHTML = planillas.map((p, i) => {
     dev += p.calc.devengado; desc += p.calc.descuentos; net += p.calc.neto;
-    return `<tr>
+    return `<tr class="${clasesNombrePlanilla(p)}">
       <td>${i + 1}</td>
       <td><div class="col-name">${esc(p.empleadoSnapshot.nombre)}</div><div class="col-sub">${esc(p.empleadoSnapshot.cargo)} · ${esc(p.empleadoSnapshot.departamento)}</div></td>
       <td>${esc(periodoTexto(p))}</td>
