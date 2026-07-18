@@ -312,6 +312,7 @@
             <div class="form-group"><label>Estado del empleado</label><select id="gm-estado" onchange="renderGananciasMenusuales()"><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></div>
             <div class="form-group"><label>Búsqueda</label><input type="search" id="gm-buscar" placeholder="Nombre o DUI" oninput="renderGananciasMenusuales()"></div>
             <button class="btn btn-success" onclick="exportarGananciasMensuales()">Exportar a Excel</button>
+            <button class="btn btn-danger" onclick="exportarPDFGananciasMensuales()">Exportar a PDF</button>
             <button class="btn btn-primary" onclick="imprimirGananciasMensuales()">Imprimir</button>
           </div>
         </div>
@@ -477,6 +478,8 @@
 <script src="js/initial-data.js"></script>
 <script src="js/initial-data.local.js"></script>
 <script src="js/vendor/supabase.min.js"></script>
+<script src="js/vendor/jspdf.umd.min.js"></script>
+<script src="js/vendor/jspdf.plugin.autotable.min.js"></script>
 <script src="js/supabase-config.public.js"></script>
 <script src="js/supabase-adapter.js" defer></script>
 <script src="js/app.js" defer></script>

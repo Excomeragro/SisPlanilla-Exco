@@ -36,7 +36,7 @@ function iso(d) {
 }
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [] }; }
+function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {} }; }
 function normalizarEstado(raw) {
   const base = estadoVacio();
   if (Array.isArray(raw)) raw = { planillas: raw };
@@ -45,6 +45,7 @@ function normalizarEstado(raw) {
   base.planillas = (raw.planillas || raw.planilla || []).map(normalizarPlanilla);
   base.historialPagos = (raw.historialPagos || []).map(normalizarPago);
   base.boletas = (raw.boletas || []).map(b => ({ ...b, id: b.id || uid() }));
+  base.ajustesPlanillaMasiva = raw.ajustesPlanillaMasiva && typeof raw.ajustesPlanillaMasiva === 'object' ? raw.ajustesPlanillaMasiva : {};
   const migrados = base.planillas.map(p => p.empleadoSnapshot).filter(e => e && e.nombre);
   migrados.forEach(e => {
     if (!base.empleados.some(x => x.id === e.id || x.nombre.toLowerCase() === e.nombre.toLowerCase())) base.empleados.push(normalizarEmpleado(e));
@@ -758,6 +759,44 @@ function semanaMasivaActual() {
     fin: document.getElementById('m-fecha-fin')?.value || ''
   };
 }
+function cargarAjustesMasivosGuardados() {
+  const { inicio } = semanaMasivaActual();
+  const guardados = state.ajustesPlanillaMasiva?.[inicio];
+  if (guardados && typeof guardados === 'object') {
+    ajustesPlanillaMasiva = JSON.parse(JSON.stringify(guardados));
+    return;
+  }
+  const recuperados = {};
+  state.planillas.filter(p => p.fechaInicio === inicio).forEach(p => {
+    const ajuste = {
+      extraDias: normalizarExtraDias(p.extraDias),
+      extraNocturnasDias: normalizarExtraDias(p.extraNocturnasDias),
+      hAsueto: num(p.hAsueto),
+      hDomingo: num(p.hDomingo ?? p.extraDias?.domingo),
+      hAsuetoExtraDiurna: num(p.hAsuetoExtraDiurna),
+      hAsuetoExtraNocturna: num(p.hAsuetoExtraNocturna),
+      hPermiso: num(p.hPermiso),
+      diasSinPermiso: num(p.diasSinPermiso),
+      diasIncapacidad: num(p.diasIncapacidad)
+    };
+    ajuste.extraNocturnasDias.domingo = num(p.hDomingoNocturno ?? p.extraNocturnasDias?.domingo);
+    if (tieneValoresAjusteMasivo(ajuste)) recuperados[p.empleadoId] = ajuste;
+  });
+  ajustesPlanillaMasiva = recuperados;
+  if (Object.keys(recuperados).length) {
+    if (!state.ajustesPlanillaMasiva || typeof state.ajustesPlanillaMasiva !== 'object') state.ajustesPlanillaMasiva = {};
+    state.ajustesPlanillaMasiva[inicio] = JSON.parse(JSON.stringify(recuperados));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+}
+function guardarAjustesMasivosSemana() {
+  const { inicio } = semanaMasivaActual();
+  if (!inicio) return;
+  if (!state.ajustesPlanillaMasiva || typeof state.ajustesPlanillaMasiva !== 'object') state.ajustesPlanillaMasiva = {};
+  state.ajustesPlanillaMasiva[inicio] = JSON.parse(JSON.stringify(ajustesPlanillaMasiva));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  programarGuardadoSupabase();
+}
 function empleadoAplicaSemanaMasiva(emp) {
   if (!emp) return false;
   if (emp.estado === 'activo') return true;
@@ -773,7 +812,7 @@ function ajustarSemanaMasiva() {
   sunday.setDate(monday.getDate() + 6);
   document.getElementById('m-fecha-inicio').value = iso(monday);
   document.getElementById('m-fecha-fin').value = iso(sunday);
-  ajustesPlanillaMasiva = {};
+  cargarAjustesMasivosGuardados();
   limpiarAjusteMasivo();
   renderPlanillaMasiva();
 }
@@ -783,6 +822,7 @@ function setSemanaMasivaActual() {
   sunday.setDate(monday.getDate() + 6);
   document.getElementById('m-fecha-inicio').value = iso(monday);
   document.getElementById('m-fecha-fin').value = iso(sunday);
+  cargarAjustesMasivosGuardados();
 }
 function ajusteMasivoVacio() {
   return {
@@ -864,6 +904,7 @@ function guardarAjusteMasivo() {
   if (!emp) { toast('Selecciona un empleado.'); return; }
   const ajuste = leerAjusteMasivoForm();
   ajustesPlanillaMasiva[id] = ajuste;
+  guardarAjustesMasivosSemana();
   limpiarAjusteMasivo();
   renderPlanillaMasiva();
   toast('Guardado');
@@ -878,6 +919,7 @@ function editarAjusteMasivo(id) {
 }
 function eliminarAjusteMasivo(id) {
   delete ajustesPlanillaMasiva[id];
+  guardarAjustesMasivosSemana();
   limpiarAjusteMasivo();
   renderPlanillaMasiva();
 }
@@ -908,6 +950,7 @@ function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   else ajuste[campo] = campo === 'diasSinPermiso' || campo === 'diasIncapacidad' ? Math.max(0, Math.floor(num(valor))) : num(valor);
   if (tieneValoresAjusteMasivo(ajuste)) ajustesPlanillaMasiva[id] = ajuste;
   else delete ajustesPlanillaMasiva[id];
+  guardarAjustesMasivosSemana();
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
 }
@@ -1880,7 +1923,7 @@ function setSemanaActual() {
 
 function renderGananciasMenusuales() {
   const anio = num(document.getElementById('gm-anio').value) || new Date().getFullYear();
-  const mes = document.getElementById('gm-mes').value;
+  const mesSeleccionado = document.getElementById('gm-mes').value;
   const estado = document.getElementById('gm-estado').value;
   const busqueda = textoNormalizado(document.getElementById('gm-buscar').value);
   
@@ -1889,14 +1932,30 @@ function renderGananciasMenusuales() {
   if (estado) empleados = empleados.filter(e => e.estado === estado);
   if (busqueda) empleados = empleados.filter(e => textoNormalizado(e.nombre).includes(busqueda) || textoNormalizado(e.dui).includes(busqueda));
   
+  // Crear array de todos los meses del año seleccionado
+  const mesesDelAnio = [];
+  for (let m = 1; m <= 12; m++) {
+    mesesDelAnio.push({
+      clave: `${anio}-${String(m).padStart(2, '0')}`,
+      numero: m,
+      nombre: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][m - 1]
+    });
+  }
+  
+  // Filtrar meses si se selecciona uno específico
+  const mesesParaMostrar = mesSeleccionado ? mesesDelAnio.filter(m => m.numero === num(mesSeleccionado)) : mesesDelAnio;
+  
   // Agrupar pagos por empleado y mes
   const gananciasPorEmpleadoMes = {};
   state.historialPagos.forEach(pago => {
+    const emp = empleadoPorId(pago.empleadoId);
+    if (!emp) return;
+    
     const fechaPago = new Date(pago.fecha);
     const anioPago = fechaPago.getFullYear();
     const mesPago = fechaPago.getMonth() + 1;
     
-    if (anioPago === anio && (!mes || mesPago === num(mes))) {
+    if (anioPago === anio) {
       if (!gananciasPorEmpleadoMes[pago.empleadoId]) {
         gananciasPorEmpleadoMes[pago.empleadoId] = {};
       }
@@ -1908,19 +1967,10 @@ function renderGananciasMenusuales() {
     }
   });
   
-  // Obtener todos los meses únicos
-  const mesesUnicos = new Set();
-  Object.values(gananciasPorEmpleadoMes).forEach(meses => {
-    Object.keys(meses).forEach(m => mesesUnicos.add(m));
-  });
-  const mesesOrdenados = Array.from(mesesUnicos).sort();
-  
   // Construir headers de meses
   let headersHtml = '';
-  mesesOrdenados.forEach(mesClave => {
-    const [a, m] = mesClave.split('-');
-    const nombreMes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][num(m) - 1];
-    headersHtml += `<th>${nombreMes} ${a}</th>`;
+  mesesParaMostrar.forEach(mes => {
+    headersHtml += `<th title="${mes.nombre} ${anio}">${mes.nombre.substring(0, 3)}</th>`;
   });
   document.getElementById('gm-header-meses').innerHTML = headersHtml || '<th>Sin datos</th>';
   
@@ -1929,17 +1979,18 @@ function renderGananciasMenusuales() {
   const tfoot = document.getElementById('gm-tfoot');
   
   if (!empleados.length) {
-    tbody.innerHTML = '<tr><td colspan="' + (6 + mesesOrdenados.length) + '"><div class="table-empty">No hay empleados registrados.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (6 + mesesParaMostrar.length) + '"><div class="table-empty">No hay empleados registrados.</div></td></tr>';
     tfoot.innerHTML = '';
     document.getElementById('gm-count').textContent = '0 registros';
     return;
   }
   
-  let totalNeto = 0;
-  let conteoFilas = 0;
+  const totalesPorMes = {};
+  mesesParaMostrar.forEach(mes => {
+    totalesPorMes[mes.clave] = 0;
+  });
   
   tbody.innerHTML = empleados.map((e, i) => {
-    conteoFilas++;
     let filasHtml = `<tr>
       <td>${i + 1}</td>
       <td><div class="col-name">${esc(e.nombre)}</div></td>
@@ -1948,15 +1999,15 @@ function renderGananciasMenusuales() {
       <td>${esc(e.departamento)}</td>
       <td>${e.estado === 'activo' ? '<span class="badge badge-green">🟢 Activo</span>' : '<span class="badge badge-red">🔴 Inactivo</span>'}</td>`;
     
-    mesesOrdenados.forEach(mesClave => {
-      const pagosMes = gananciasPorEmpleadoMes[e.id] ? (gananciasPorEmpleadoMes[e.id][mesClave] || []) : [];
+    mesesParaMostrar.forEach(mes => {
+      const pagosMes = gananciasPorEmpleadoMes[e.id] ? (gananciasPorEmpleadoMes[e.id][mes.clave] || []) : [];
       if (pagosMes.length > 0) {
-        const neto = pagosMes.reduce((sum, p) => sum + (p.neto || 0), 0);
-        totalNeto += neto;
+        const neto = pagosMes.reduce((sum, p) => sum + num(p.neto || 0), 0);
+        totalesPorMes[mes.clave] += neto;
         const periodos = pagosMes.map(p => p.periodo).join(', ');
         filasHtml += `<td class="col-money" title="${periodos}">${money(neto)}</td>`;
       } else {
-        filasHtml += `<td>—</td>`;
+        filasHtml += `<td class="col-empty">—</td>`;
       }
     });
     
@@ -1965,14 +2016,9 @@ function renderGananciasMenusuales() {
   }).join('');
   
   // Pie de tabla con totales
-  let piHtml = `<tr><td colspan="6"><strong>TOTAL NETO MENSUAL</strong></td>`;
-  mesesOrdenados.forEach(mesClave => {
-    let totalMes = 0;
-    empleados.forEach(e => {
-      const pagosMes = gananciasPorEmpleadoMes[e.id] ? (gananciasPorEmpleadoMes[e.id][mesClave] || []) : [];
-      totalMes += pagosMes.reduce((sum, p) => sum + (p.neto || 0), 0);
-    });
-    piHtml += `<td class="col-money"><strong>${money(totalMes)}</strong></td>`;
+  let piHtml = `<tr><td colspan="6"><strong>TOTAL NETO</strong></td>`;
+  mesesParaMostrar.forEach(mes => {
+    piHtml += `<td class="col-money"><strong>${money(totalesPorMes[mes.clave])}</strong></td>`;
   });
   piHtml += `</tr>`;
   tfoot.innerHTML = piHtml;
@@ -2035,6 +2081,108 @@ function imprimirGananciasMensuales() {
   ventana.document.write('</body></html>');
   ventana.document.close();
   ventana.print();
+}
+
+function datosGananciasMensualesActuales() {
+  const anio = num(document.getElementById('gm-anio').value) || new Date().getFullYear();
+  const mesSeleccionado = document.getElementById('gm-mes').value;
+  const estado = document.getElementById('gm-estado').value;
+  const busqueda = textoNormalizado(document.getElementById('gm-buscar').value);
+
+  let empleados = state.empleados.slice();
+  if (estado) empleados = empleados.filter(e => e.estado === estado);
+  if (busqueda) empleados = empleados.filter(e => textoNormalizado(e.nombre).includes(busqueda) || textoNormalizado(e.dui).includes(busqueda));
+
+  const nombresMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mesesDelAnio = [];
+  for (let m = 1; m <= 12; m++) mesesDelAnio.push({ clave: `${anio}-${String(m).padStart(2,'0')}`, numero: m, nombre: nombresMeses[m - 1] });
+  const mesesParaMostrar = mesSeleccionado ? mesesDelAnio.filter(m => m.numero === num(mesSeleccionado)) : mesesDelAnio;
+
+  const gananciasPorEmpleadoMes = {};
+  state.historialPagos.forEach(pago => {
+    const emp = empleadoPorId(pago.empleadoId);
+    if (!emp) return;
+    const fechaPago = new Date(pago.fecha);
+    const anioPago = fechaPago.getFullYear();
+    const mesPago = fechaPago.getMonth() + 1;
+    if (anioPago !== anio) return;
+    const clave = `${anioPago}-${String(mesPago).padStart(2,'0')}`;
+    if (!gananciasPorEmpleadoMes[pago.empleadoId]) gananciasPorEmpleadoMes[pago.empleadoId] = {};
+    if (!gananciasPorEmpleadoMes[pago.empleadoId][clave]) gananciasPorEmpleadoMes[pago.empleadoId][clave] = [];
+    gananciasPorEmpleadoMes[pago.empleadoId][clave].push(pago);
+  });
+
+  return { anio, mesSeleccionado, empleados, mesesParaMostrar, gananciasPorEmpleadoMes };
+}
+
+function exportarPDFGananciasMensuales() {
+  if (!window.jspdf || !window.jspdf.jsPDF) { alert('No se pudo cargar el generador de PDF.'); return; }
+  const { anio, mesSeleccionado, empleados, mesesParaMostrar, gananciasPorEmpleadoMes } = datosGananciasMensualesActuales();
+
+  if (!empleados.length || !mesesParaMostrar.length) { alert('No hay datos para exportar con los filtros actuales.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+  doc.setFontSize(14);
+  doc.text('EXCOMERCAFE SA DE CV - Ganancias Mensuales', 40, 36);
+  doc.setFontSize(9);
+  const filtroTexto = 'Año: ' + anio + (mesSeleccionado ? ' · Mes: ' + mesesParaMostrar[0].nombre : ' · Todos los meses') + ' · Generado: ' + todayIso();
+  doc.text(filtroTexto, 40, 52);
+
+  const head = [['#', 'Empleado', 'DUI', 'Cargo', 'Departamento', 'Estado', ...mesesParaMostrar.map(m => m.nombre.substring(0, 3)), 'Total']];
+  const totalesPorMes = {};
+  mesesParaMostrar.forEach(m => totalesPorMes[m.clave] = 0);
+  let totalGeneral = 0;
+
+  const body = empleados.map((e, i) => {
+    let totalEmpleado = 0;
+    const celdasMeses = mesesParaMostrar.map(mes => {
+      const pagosMes = (gananciasPorEmpleadoMes[e.id] && gananciasPorEmpleadoMes[e.id][mes.clave]) || [];
+      const neto = pagosMes.reduce((sum, p) => sum + num(p.neto || 0), 0);
+      totalesPorMes[mes.clave] += neto;
+      totalEmpleado += neto;
+      return pagosMes.length ? money(neto) : '—';
+    });
+    totalGeneral += totalEmpleado;
+    return [i + 1, e.nombre, e.dui || '—', e.cargo, e.departamento, e.estado === 'activo' ? 'Activo' : 'Inactivo', ...celdasMeses, money(totalEmpleado)];
+  });
+
+  const filaTotales = ['', '', '', '', '', 'TOTAL NETO', ...mesesParaMostrar.map(m => money(totalesPorMes[m.clave])), money(totalGeneral)];
+
+  doc.autoTable({
+    head, body, foot: [filaTotales],
+    startY: 64,
+    styles: { fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [30, 90, 60] },
+    footStyles: { fillColor: [235, 235, 235], textColor: [20, 20, 20], fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 20 } }
+  });
+
+  // Detalle de semanas por empleado, solo cuando se filtra un mes específico (para no saturar el PDF)
+  if (mesSeleccionado) {
+    const mes = mesesParaMostrar[0];
+    const filasDetalle = [];
+    empleados.forEach(e => {
+      const pagosMes = (gananciasPorEmpleadoMes[e.id] && gananciasPorEmpleadoMes[e.id][mes.clave]) || [];
+      pagosMes.forEach(p => filasDetalle.push([e.nombre, p.periodo, money(p.neto)]));
+    });
+    if (filasDetalle.length) {
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.text('Detalle de semanas pagadas - ' + mes.nombre + ' ' + anio, 40, 36);
+      doc.autoTable({
+        head: [['Empleado', 'Semana pagada (de - a)', 'Neto']],
+        body: filasDetalle,
+        startY: 50,
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: [30, 90, 60] }
+      });
+    }
+  }
+
+  const nombreArchivo = 'ganancias-mensuales-' + anio + (mesSeleccionado ? '-' + String(mesSeleccionado).padStart(2, '0') : '') + '.pdf';
+  doc.save(nombreArchivo);
 }
 
 document.getElementById('today-pill').textContent = new Date().toLocaleDateString('es-SV', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
