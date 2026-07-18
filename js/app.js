@@ -940,11 +940,9 @@ function valorAjusteMasivoRapido(id, campo, dia) {
 function clasesNombreMasivo(emp) {
   const ajuste = ajustesPlanillaMasiva[emp.id];
   const tieneExtra = tieneValoresAjusteMasivo(ajuste);
-  let tieneDescuento = false;
-  if (tieneExtra || num(emp.descuentoFijo) > 0 || emp.aplicarRenta) {
-    const calc = calcularPago(datosPlanillaMasivaEmpleado(emp));
-    tieneDescuento = num(calc.descuentos) > 0;
-  }
+  const tieneDescuento = num(ajuste?.hPermiso) > 0
+    || num(ajuste?.diasSinPermiso) > 0
+    || num(emp.descuentoFijo) > 0;
   return [
     tieneExtra ? 'mass-name-has-extra' : '',
     tieneDescuento ? 'mass-name-has-discount' : '',
@@ -1120,9 +1118,8 @@ function actualizarColoresPlanilla(d, calc) {
     if (input) input.classList.toggle('visual-extra-filled', value > 0);
   });
   const descuentos = [
-    ['p-isss', calc.isss],
-    ['p-afp', calc.afp],
-    ['p-renta-sugerida', d.aplicarRenta ? calc.renta : 0],
+    ['p-h-permiso', d.hPermiso],
+    ['p-dias-sin-permiso', d.diasSinPermiso],
     ['p-prestamos', d.prestamos],
     ['p-otros-descuentos', d.otrosDescuentos]
   ];
@@ -1944,7 +1941,10 @@ function renderEmpleados() {
 }
 function clasesNombrePlanilla(p) {
   const tieneExtra = num(p.hExtra) + num(p.hExtraNocturna) + num(p.hAsueto) + num(p.hAsuetoExtraDiurna) + num(p.hAsuetoExtraNocturna) + num(p.hDomingo) + num(p.hDomingoNocturno) > 0;
-  const tieneDescuento = num(p.calc?.descuentos) > 0;
+  const tieneDescuento = num(p.hPermiso) > 0
+    || num(p.diasSinPermiso) > 0
+    || num(p.calc?.prestamos) > 0
+    || num(p.calc?.otrosDescuentos) > 0;
   return [
     tieneExtra ? 'planilla-name-has-extra' : '',
     tieneDescuento ? 'planilla-name-has-discount' : '',
