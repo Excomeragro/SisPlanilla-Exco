@@ -1287,6 +1287,25 @@ function limpiarPlanillaForm(resetWeek = true) {
   renderSelects();
 }
 
+function crearPlanillaDesdeEmpleado(id) {
+  const emp = empleadoPorId(id);
+  if (!emp) return;
+  showTab('planilla');
+  limpiarPlanillaForm(true);
+  if (!empleadoAplicaSemana(emp)) {
+    toast('Este empleado no corresponde a la semana actual.');
+    return;
+  }
+  if (!empleadoDisponiblePlanilla(emp)) {
+    toast('Este empleado ya tiene planilla en la semana actual.');
+    return;
+  }
+  document.getElementById('p-empleado').value = emp.id;
+  document.getElementById('p-empleado-buscar').value = emp.nombre;
+  cargarEmpleadoPlanilla();
+  requestAnimationFrame(() => document.getElementById('planilla-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
 function leerEmpleadoForm() {
   return normalizarEmpleado({
     id: empleadoEditId || uid(),
@@ -1358,6 +1377,7 @@ function editarEmpleado(id) {
   document.getElementById('empleado-form-title').textContent = 'Editando: ' + e.nombre;
   document.getElementById('empleado-mode').textContent = 'Editar';
   document.getElementById('empleado-mode').className = 'badge badge-amber';
+  document.getElementById('e-crear-planilla').hidden = false;
   toggleFechaSalida();
 }
 function limpiarEmpleadoForm(reset = true) {
@@ -1375,6 +1395,7 @@ function limpiarEmpleadoForm(reset = true) {
   document.getElementById('empleado-form-title').textContent = 'Registro completo de empleado';
   document.getElementById('empleado-mode').textContent = 'Nuevo';
   document.getElementById('empleado-mode').className = 'badge badge-blue';
+  document.getElementById('e-crear-planilla').hidden = true;
   toggleFechaSalida();
 }
 function toggleFechaSalida() {
@@ -1858,7 +1879,7 @@ function renderEmpleados() {
       <td>${money(e.salarioHora)}</td>
       <td>${descuentosEmpleadoHtml(e)}</td>
       <td>${e.estado === 'activo' ? '<span class="badge badge-green">🟢 Activo</span>' : '<span class="badge badge-red">🔴 Inactivo</span>'}</td>
-      <td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
+      <td class="actions-cell">${empleadoAplicaSemana(e) ? (empleadoDisponiblePlanilla(e) ? `<button class="btn btn-success btn-sm" onclick="crearPlanillaDesdeEmpleado('${e.id}')">Crear planilla</button>` : '<span class="badge badge-blue">Ya registrada</span>') : ''}<button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
     </tr>`).join('');
 }
 function renderPlanilla() {
