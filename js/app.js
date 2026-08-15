@@ -1688,7 +1688,26 @@ function abrirDetallePlanilla() {
     const filas = ordenadas.map(p => {
       const c = p.calc || {};
       const otros = num(c.prestamos) + num(c.otrosDescuentos);
-      return `<tr><td>${esc(p.empleadoSnapshot.nombre)}</td><td>${money(p.empleadoSnapshot.salarioHora)}</td><td>${num(c.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}</td><td>${num(p.hExtra).toFixed(2)}</td><td>${num(p.hExtraNocturna).toFixed(2)}</td><td>${num(p.hDomingo ?? p.extraDias?.domingo).toFixed(2)}</td><td>${num(p.hDomingoNocturno ?? p.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(c.horasSeptimoPagadas ?? p.hSeptimo).toFixed(2)}</td><td>${num(p.hAsueto).toFixed(2)}</td><td>${num(p.hAsuetoExtraDiurna).toFixed(2)}</td><td>${num(p.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(p.hPermiso).toFixed(2)}</td><td>${num(p.diasSinPermiso).toFixed(0)}</td><td>${num(c.horasIncapacidadPagadas).toFixed(2)}</td><td>${money(c.devengado)}</td><td>${money(c.renta)}</td><td>${money(c.isss)}</td><td>${money(c.afp)}</td><td>${money(otros)}</td><td>${money(c.neto)}</td></tr>`;
+      const extraD = num(p.hExtra);
+      const extraN = num(p.hExtraNocturna);
+      const domingoD = num(p.hDomingo ?? p.extraDias?.domingo);
+      const domingoN = num(p.hDomingoNocturno ?? p.extraNocturnasDias?.domingo);
+      const asueto = num(p.hAsueto);
+      const asuetoExtraD = num(p.hAsuetoExtraDiurna);
+      const asuetoExtraN = num(p.hAsuetoExtraNocturna);
+      const permiso = num(p.hPermiso);
+      const falta = num(p.diasSinPermiso);
+      const incapacidad = num(c.horasIncapacidadPagadas);
+      const tieneExtra = extraD + extraN + domingoD + domingoN + asueto + asuetoExtraD + asuetoExtraN > 0;
+      const tieneAjuste = permiso > 0 || falta > 0 || incapacidad > 0;
+      const tieneDescuento = otros > 0;
+      const clasesFila = [
+        tieneExtra ? 'detail-row-has-extra' : '',
+        tieneAjuste ? 'detail-row-has-adjustment' : '',
+        tieneDescuento ? 'detail-row-has-discount' : ''
+      ].filter(Boolean).join(' ');
+      const clase = (valor, nombre) => num(valor) > 0 ? ` class="detail-${nombre}-cell"` : '';
+      return `<tr class="${clasesFila}"><td class="detail-name-cell">${esc(p.empleadoSnapshot.nombre)}</td><td>${money(p.empleadoSnapshot.salarioHora)}</td><td>${num(c.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}</td><td${clase(extraD, 'extra')}>${extraD.toFixed(2)}</td><td${clase(extraN, 'extra')}>${extraN.toFixed(2)}</td><td${clase(domingoD, 'extra')}>${domingoD.toFixed(2)}</td><td${clase(domingoN, 'extra')}>${domingoN.toFixed(2)}</td><td>${num(c.horasSeptimoPagadas ?? p.hSeptimo).toFixed(2)}</td><td${clase(asueto, 'extra')}>${asueto.toFixed(2)}</td><td${clase(asuetoExtraD, 'extra')}>${asuetoExtraD.toFixed(2)}</td><td${clase(asuetoExtraN, 'extra')}>${asuetoExtraN.toFixed(2)}</td><td${clase(permiso, 'adjustment')}>${permiso.toFixed(2)}</td><td${clase(falta, 'adjustment')}>${falta.toFixed(0)}</td><td${clase(incapacidad, 'adjustment')}>${incapacidad.toFixed(2)}</td><td class="${tieneExtra || tieneAjuste || tieneDescuento ? 'detail-total-adjusted-cell' : ''}">${money(c.devengado)}</td><td>${money(c.renta)}</td><td>${money(c.isss)}</td><td>${money(c.afp)}</td><td${clase(otros, 'discount')}>${money(otros)}</td><td class="${tieneExtra || tieneAjuste || tieneDescuento ? 'detail-total-adjusted-cell' : ''}">${money(c.neto)}</td></tr>`;
     }).join('');
     return `<tr class="area-title-row"><th colspan="20">ÁREA: ${esc(area.toUpperCase())}</th></tr>${filas}${filaTotalesDetalle('Subtotal ' + area, totalesDetallePlanilla(ordenadas), 'area-subtotal')}`;
   }).join('');

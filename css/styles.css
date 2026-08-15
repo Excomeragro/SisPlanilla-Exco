@@ -513,6 +513,28 @@
   .payroll-detail-table .area-title-row th { padding: 3px 5px; background: #E2E8F0; color: #0F172A; text-align: left; font-size: 9px; }
   .payroll-detail-table .area-subtotal { background: #F1F5F9; font-weight: 700; }
   .payroll-detail-table .grand-total { background: #D1FAE5; font-weight: 800; }
+  .payroll-detail-table .detail-extra-cell {
+    background: #DCFCE7;
+    color: #166534;
+    font-weight: 700;
+  }
+  .payroll-detail-table .detail-adjustment-cell {
+    background: #FEF3C7;
+    color: #92400E;
+    font-weight: 700;
+  }
+  .payroll-detail-table .detail-discount-cell {
+    background: #FEE2E2;
+    color: #991B1B;
+    font-weight: 700;
+  }
+  .payroll-detail-table .detail-total-adjusted-cell {
+    background: #F8FAFC;
+    font-weight: 700;
+  }
+  .payroll-detail-table tr.detail-row-has-extra .detail-name-cell { border-left: 4px solid #16A34A; color: #166534; font-weight: 700; }
+  .payroll-detail-table tr.detail-row-has-adjustment .detail-name-cell { border-left: 4px solid #F59E0B; color: #92400E; font-weight: 700; }
+  .payroll-detail-table tr.detail-row-has-discount .detail-name-cell { border-left: 4px solid #DC2626; color: #991B1B; font-weight: 700; }
   .payroll-grand-total { margin-top: 18px; }
   .cash-report-total { margin: 0 auto 10px; padding: 8px 12px; max-width: 520px; border: 1px solid #0F172A; text-align: center; font-size: 13px; }
   .cash-report-total strong { margin-left: 10px; font-size: 16px; }
@@ -738,6 +760,8 @@
     body.printing-payroll-detail .payroll-report-header h2 { margin:2px 0 4px !important; font-size:13px !important; }
     body.printing-payroll-detail .payroll-report-header div { font-size:10px !important; }
     body.printing-payroll-detail .payroll-detail-table { font-size:10.2px !important; }
+    body.printing-payroll-detail .payroll-detail-table,
+    body.printing-payroll-detail .payroll-detail-table * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body.printing-payroll-detail .payroll-detail-table thead { display:table-header-group !important; }
     body.printing-payroll-detail .payroll-detail-table th,
     body.printing-payroll-detail .payroll-detail-table td { padding:3px 2px !important; line-height:1.15 !important; }
