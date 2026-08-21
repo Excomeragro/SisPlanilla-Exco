@@ -1226,7 +1226,7 @@ function actualizarColoresPlanilla(d, calc) {
     input.classList.toggle(clase, value > 0);
     const etiqueta = input.closest('label');
     etiqueta?.classList.remove('visual-extra-diurna', 'visual-extra-nocturna', 'visual-extra-asueto', 'visual-extra-domingo');
-    if (value > 0) etiqueta?.classList.add(clase);
+    etiqueta?.classList.add(clase);
   });
   const descuentos = [
     ['p-h-permiso', d.hPermiso],
@@ -1240,8 +1240,8 @@ function actualizarColoresPlanilla(d, calc) {
     input.classList.toggle('visual-discount-active', num(value) > 0);
     input.classList.toggle('visual-no-discount', num(value) <= 0);
     const etiqueta = input.closest('label');
-    etiqueta?.classList.remove('visual-discount-active', 'visual-no-discount');
-    etiqueta?.classList.add(num(value) > 0 ? 'visual-discount-active' : 'visual-no-discount');
+    etiqueta?.classList.remove('visual-discount-active', 'visual-no-discount', 'visual-discount-field');
+    etiqueta?.classList.add('visual-discount-field');
   });
 }
 function construirRegistroPlanilla(d, id) {

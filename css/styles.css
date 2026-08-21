@@ -365,6 +365,8 @@
   .form-group label.visual-extra-domingo { background:#ECFEFF; border-left:3px solid #0891B2; color:#155E75; padding:4px 6px; border-radius:4px; }
   .form-group label.visual-discount-active { background:#FEF2F2; border-left:3px solid #DC2626; color:#991B1B; padding:4px 6px; border-radius:4px; }
   .form-group label.visual-no-discount { background:#FFFBEB; border-left:3px solid #F59E0B; color:#92400E; padding:4px 6px; border-radius:4px; }
+  .form-group label.visual-discount-field { background:#FEF2F2; border:1px solid #FCA5A5; border-left:3px solid #DC2626; color:#991B1B; padding:6px 7px; border-radius:6px; }
+  .form-group label.visual-discount-field input.visual-no-discount { background:#FAFBFC !important; border-color:var(--border) !important; color:var(--text) !important; }
   .mass-cell-input.mass-extra-diurna { background:#DCFCE7 !important; border-color:#16A34A !important; color:#166534 !important; }
   .mass-cell-input.mass-extra-nocturna { background:#DBEAFE !important; border-color:#2563EB !important; color:#1D4ED8 !important; }
   .mass-cell-input.mass-extra-asueto { background:#FEF3C7 !important; border-color:#F59E0B !important; color:#92400E !important; }
