@@ -101,6 +101,16 @@
       </div>
       <div class="card" id="planilla-masiva-card">
         <div class="card-header"><h2>Planilla masiva</h2><span class="badge badge-blue" id="masiva-empleados-count">0 empleados</span></div>
+        <div class="card-body frequent-extra-section">
+          <div class="section-mini-head">
+            <div>
+              <h3>Empleados con horas extras frecuentes</h3>
+              <p>Accede rápidamente a las personas que normalmente llevan horas extras. Puedes agregar o quitar empleados.</p>
+            </div>
+            <div class="frequent-extra-add"><select id="extras-frecuentes-agregar"><option value="">Agregar empleado frecuente...</option></select><button class="btn btn-ghost btn-sm" onclick="agregarEmpleadoExtraFrecuente()">Agregar</button></div>
+          </div>
+          <div id="extras-frecuentes-lista" class="frequent-extra-list"></div>
+        </div>
         <div class="card-body">
           <div class="form-grid">
             <div class="form-divider">Semana para todos</div>
@@ -431,6 +441,13 @@
               <button class="btn btn-ghost" onclick="importarJSON()">Importar JSON</button>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>GitHub</h2></div>
+        <div class="card-body github-tools">
+          <p>Abre directamente la pantalla para subir los archivos del proyecto al repositorio SisPlanilla Exco.</p>
+          <button class="btn btn-primary" onclick="abrirSubidaGitHub()">Subir archivos a GitHub</button>
         </div>
       </div>
     </section>

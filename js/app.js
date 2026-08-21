@@ -36,7 +36,7 @@ function iso(d) {
 }
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {} }; }
+function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [] }; }
 function normalizarEstado(raw) {
   const base = estadoVacio();
   if (Array.isArray(raw)) raw = { planillas: raw };
@@ -50,6 +50,10 @@ function normalizarEstado(raw) {
   migrados.forEach(e => {
     if (!base.empleados.some(x => x.id === e.id || x.nombre.toLowerCase() === e.nombre.toLowerCase())) base.empleados.push(normalizarEmpleado(e));
   });
+  const idsFrecuentes = Array.isArray(raw.empleadosExtrasFrecuentes)
+    ? raw.empleadosExtrasFrecuentes
+    : empleadosExtrasFrecuentesPredeterminados(base.empleados);
+  base.empleadosExtrasFrecuentes = idsFrecuentes.filter(id => base.empleados.some(e => e.id === id));
   return base;
 }
 function normalizarEmpleado(e) {
@@ -138,6 +142,14 @@ function normalizarPago(p) {
     neto: num(p.neto)
   };
 }
+function empleadosExtrasFrecuentesPredeterminados(empleados) {
+  return empleados.filter(emp => {
+    const nombre = textoNormalizado(emp.nombre);
+    return (nombre.includes('pacheco') && nombre.includes('jose'))
+      || (nombre.includes('palacios') && nombre.includes('juan'))
+      || (nombre.includes('flores') && nombre.includes('daniel'));
+  }).map(emp => emp.id);
+}
 function estadoTieneDatos(data) {
   return !!(data.empleados.length || data.planillas.length || data.historialPagos.length || data.boletas.length);
 }
@@ -194,11 +206,12 @@ function cargarEstado() {
   }
   return estadoVacio();
 }
-function guardarEstado(mostrarAviso = true) {
+function guardarEstado(mostrarAviso = true, preguntarSincronizacion = false) {
   sincronizarBoletasConPlanillas();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
   renderTodo();
-  programarGuardadoSupabase();
+  if (preguntarSincronizacion) solicitarSincronizacion();
+  else programarGuardadoSupabase();
   if (mostrarAviso) toast('Guardado');
 }
 
@@ -244,6 +257,14 @@ function programarGuardadoSupabase() {
   if (!supabaseConectado || !supabaseUsuario || aplicandoEstadoRemoto) return;
   clearTimeout(guardadoSupabaseTimer);
   guardadoSupabaseTimer = setTimeout(guardarEstadoEnSupabase, 600);
+}
+
+function solicitarSincronizacion() {
+  clearTimeout(guardadoSupabaseTimer);
+  if (!supabaseConectado || !supabaseUsuario || aplicandoEstadoRemoto) return;
+  const confirmar = window.confirm('La planilla se guardó en este equipo. ¿Deseas sincronizarla ahora con Supabase?');
+  if (!confirmar) return toast('Guardado local.');
+  guardarEstadoEnSupabase().then(ok => toast(ok ? 'Sincronizado' : 'No se pudo sincronizar.', 3500));
 }
 
 async function guardarEstadoEnSupabase() {
@@ -485,6 +506,11 @@ function exportarJSON() {
   a.click();
   URL.revokeObjectURL(url);
   toast('JSON exportado.');
+}
+function abrirSubidaGitHub() {
+  const url = 'https://github.com/Excomeragro/SisPlanilla-Exco/upload/main';
+  window.open(url, '_blank', 'noopener,noreferrer');
+  toast('GitHub abierto en la pantalla de subida.');
 }
 function importarJSON() {
   const input = document.createElement('input');
@@ -789,13 +815,13 @@ function cargarAjustesMasivosGuardados() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
   }
 }
-function guardarAjustesMasivosSemana() {
+function guardarAjustesMasivosSemana(programar = true) {
   const { inicio } = semanaMasivaActual();
   if (!inicio) return;
   if (!state.ajustesPlanillaMasiva || typeof state.ajustesPlanillaMasiva !== 'object') state.ajustesPlanillaMasiva = {};
   state.ajustesPlanillaMasiva[inicio] = JSON.parse(JSON.stringify(ajustesPlanillaMasiva));
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
-  programarGuardadoSupabase();
+  if (programar) programarGuardadoSupabase();
 }
 function empleadoAplicaSemanaMasiva(emp) {
   if (!emp) return false;
@@ -805,6 +831,50 @@ function empleadoAplicaSemanaMasiva(emp) {
 }
 function empleadosPlanillaMasiva() {
   return ordenarPorNombre(state.empleados.filter(empleadoAplicaSemanaMasiva));
+}
+function guardarPreferenciasExtrasFrecuentes() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  programarGuardadoSupabase();
+}
+function renderEmpleadosExtrasFrecuentes() {
+  const lista = document.getElementById('extras-frecuentes-lista');
+  const selector = document.getElementById('extras-frecuentes-agregar');
+  if (!lista || !selector) return;
+  const empleados = empleadosPlanillaMasiva();
+  const ids = Array.isArray(state.empleadosExtrasFrecuentes) ? state.empleadosExtrasFrecuentes : [];
+  const frecuentes = ids.map(id => empleados.find(emp => emp.id === id)).filter(Boolean);
+  lista.innerHTML = frecuentes.length
+    ? frecuentes.map(emp => `<div class="frequent-extra-person"><span class="frequent-extra-name">${esc(emp.nombre)}</span><span class="frequent-extra-actions"><button class="btn btn-success btn-sm" onclick="enfocarEmpleadoExtraFrecuente('${emp.id}')">Horas</button><button class="btn btn-ghost btn-sm" onclick="quitarEmpleadoExtraFrecuente('${emp.id}')">Quitar</button></span></div>`).join('')
+    : '<div class="table-empty">Agrega aquí a quienes normalmente llevan horas extras.</div>';
+  const disponibles = empleados.filter(emp => !ids.includes(emp.id));
+  selector.innerHTML = '<option value="">Agregar empleado frecuente...</option>' + disponibles.map(emp => `<option value="${esc(emp.id)}">${esc(emp.nombre)}</option>`).join('');
+  selector.disabled = !disponibles.length;
+}
+function agregarEmpleadoExtraFrecuente() {
+  const selector = document.getElementById('extras-frecuentes-agregar');
+  const id = selector?.value || '';
+  if (!id) return toast('Selecciona un empleado.');
+  if (!Array.isArray(state.empleadosExtrasFrecuentes)) state.empleadosExtrasFrecuentes = [];
+  if (!state.empleadosExtrasFrecuentes.includes(id)) state.empleadosExtrasFrecuentes.push(id);
+  guardarPreferenciasExtrasFrecuentes();
+  renderEmpleadosExtrasFrecuentes();
+  selector.value = '';
+}
+function quitarEmpleadoExtraFrecuente(id) {
+  state.empleadosExtrasFrecuentes = (state.empleadosExtrasFrecuentes || []).filter(item => item !== id);
+  guardarPreferenciasExtrasFrecuentes();
+  renderEmpleadosExtrasFrecuentes();
+}
+function enfocarEmpleadoExtraFrecuente(id) {
+  const empleado = empleadoPorId(id);
+  if (!empleado) return;
+  const buscar = document.getElementById('m-rapida-buscar');
+  if (buscar) buscar.value = '';
+  renderPlanillaMasivaRapida();
+  const fila = [...document.querySelectorAll('[data-mass-employee]')].find(el => el.dataset.massEmployee === id)?.closest('tr');
+  fila?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const primeraHora = fila?.querySelector('input.mass-cell-input');
+  primeraHora?.focus();
 }
 function ajustarSemanaMasiva() {
   const monday = lunesDeFecha(document.getElementById('m-fecha-inicio').value);
@@ -904,7 +974,8 @@ function guardarAjusteMasivo() {
   if (!emp) { toast('Selecciona un empleado.'); return; }
   const ajuste = leerAjusteMasivoForm();
   ajustesPlanillaMasiva[id] = ajuste;
-  guardarAjustesMasivosSemana();
+  guardarAjustesMasivosSemana(false);
+  solicitarSincronizacion();
   limpiarAjusteMasivo();
   renderPlanillaMasiva();
   toast('Guardado');
@@ -919,7 +990,8 @@ function editarAjusteMasivo(id) {
 }
 function eliminarAjusteMasivo(id) {
   delete ajustesPlanillaMasiva[id];
-  guardarAjustesMasivosSemana();
+  guardarAjustesMasivosSemana(false);
+  solicitarSincronizacion();
   limpiarAjusteMasivo();
   renderPlanillaMasiva();
 }
@@ -970,7 +1042,7 @@ function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   else ajuste[campo] = campo === 'diasSinPermiso' || campo === 'diasIncapacidad' ? Math.max(0, Math.floor(num(valor))) : num(valor);
   if (tieneValoresAjusteMasivo(ajuste)) ajustesPlanillaMasiva[id] = ajuste;
   else delete ajustesPlanillaMasiva[id];
-  guardarAjustesMasivosSemana();
+  guardarAjustesMasivosSemana(false);
   const inputElement = document.getElementById('mq-' + campo + '-' + (dia || 'total') + '-' + id);
   if (inputElement) inputElement.classList.toggle('mass-hours-filled', num(valor) > 0);
   actualizarColorNombreMasivo(id);
@@ -1044,6 +1116,7 @@ function renderPlanillaMasiva() {
   document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${ajustesPlanillaMasiva[e.id] ? 'Seleccionado - ' : ''}${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
+  renderEmpleadosExtrasFrecuentes();
   renderPlanillaMasivaRapida();
   return;
   const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
@@ -1174,7 +1247,7 @@ function guardarRegistroPlanilla() {
   if (idx >= 0) state.planillas[idx] = registro; else state.planillas.push(registro);
   planillaEditId = null;
   limpiarPlanillaForm(false);
-  guardarEstado();
+  guardarEstado(true, true);
 }
 function datosPlanillaMasivaEmpleado(emp) {
   const { inicio, fin } = semanaMasivaActual();
@@ -1226,7 +1299,7 @@ function crearPlanillasMasivas() {
   });
   document.getElementById('p-fecha-inicio').value = inicio;
   document.getElementById('p-fecha-fin').value = fin;
-  guardarEstado();
+  guardarEstado(true, true);
 }
 function crearBoletasSemanaMasiva() {
   const { inicio, fin } = semanaMasivaActual();
@@ -1235,7 +1308,7 @@ function crearBoletasSemanaMasiva() {
   planillas.forEach(guardarBoletaAutomatica);
   document.getElementById('p-fecha-inicio').value = inicio;
   document.getElementById('p-fecha-fin').value = fin;
-  guardarEstado();
+  guardarEstado(true, true);
   showTab('boletas');
 }
 function editarPlanilla(id) {
@@ -1270,7 +1343,7 @@ function editarPlanilla(id) {
 function eliminarPlanilla(id) {
   if (!confirm('¿Eliminar este registro completo? También se borrará su boleta e historial relacionado.')) return;
   eliminarRegistroPlanilla(id);
-  guardarEstado();
+  guardarEstado(true, true);
   toast('Registro eliminado completamente.');
 }
 function eliminarRegistroPlanilla(id) {
