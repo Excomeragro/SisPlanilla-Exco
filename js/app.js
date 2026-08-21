@@ -1735,13 +1735,89 @@ function desglosarEfectivo(monto) {
   });
   return cantidades;
 }
+let modoDesgloseEfectivo = 'exacto';
+let modoBoletaPago = 'normal';
+let boletasMostradas = [];
+function redondearCentavosA05(centavos) {
+  const resto = centavos % 5;
+  return resto >= 3 ? centavos + (5 - resto) : centavos - resto;
+}
+function montoBoletaParaPago(p) {
+  const exacto = Math.max(0, Math.round(num(p?.calc?.neto ?? p?.neto) * 100));
+  return modoBoletaPago === 'redondeado' ? redondearCentavosA05(exacto) : exacto;
+}
+function opcionesModoBoletaPago(id) {
+  return `<select id="${id}" class="boleta-payment-select" onchange="cambiarModoBoleta(this.value)"><option value="normal" ${modoBoletaPago === 'normal' ? 'selected' : ''}>Normal</option><option value="redondeado" ${modoBoletaPago === 'redondeado' ? 'selected' : ''}>Redondeado a $0.05</option></select>`;
+}
+function cambiarModoBoleta(modo) {
+  modoBoletaPago = modo === 'redondeado' ? 'redondeado' : 'normal';
+  document.querySelectorAll('#boleta-modo-pago, #receipt-modo-pago').forEach(select => { select.value = modoBoletaPago; });
+  modoDesgloseEfectivo = modoBoletaPago === 'redondeado' ? 'cinco' : 'exacto';
+  const detalle = document.getElementById('payroll-detail-overlay');
+  if (detalle?.dataset.reportType === 'cash' && detalle.classList.contains('open')) renderDesgloseEfectivo(planillasSemanaSeleccionada());
+  if (boletasMostradas.length) {
+    const copias = boletasMostradas.map(b => {
+      const data = b.data || state.planillas.find(p => p.id === b.planillaId);
+      return data ? generarCopiaBoleta(data, b) : generarCopiaBoleta(null, null, true);
+    });
+    if (copias.length % 2 !== 0) copias.push(generarCopiaBoleta(null, null, true));
+    document.getElementById('receipt-pages').innerHTML = copias.join('');
+  }
+  renderBoletasDisponibles();
+  renderBoletasGeneradas();
+}
+function montoEfectivoParaPago(p) {
+  const netoCentavos = Math.max(0, Math.round(num(p.calc?.neto) * 100));
+  if (modoDesgloseEfectivo === 'cinco') {
+    return redondearCentavosA05(netoCentavos);
+  }
+  return modoDesgloseEfectivo === 'dolar' ? Math.ceil(netoCentavos / 100) * 100 : netoCentavos;
+}
 function planillasSemanaSeleccionada() {
   const { inicio, fin } = semanaPlanillaActual();
   return state.planillas.filter(p => p.fechaInicio === inicio && p.fechaFin === fin);
 }
+function cambiarModoDesgloseEfectivo(modo) {
+  modoDesgloseEfectivo = ['cinco', 'dolar'].includes(modo) ? modo : 'exacto';
+  renderDesgloseEfectivo(planillasSemanaSeleccionada());
+}
+function renderDesgloseEfectivo(planillas) {
+  const totales = Object.fromEntries(DENOMINACIONES_EFECTIVO.map(d => [d.centavos, 0]));
+  let totalSalariosCentavos = 0;
+  let totalEntregaCentavos = 0;
+  planillas.forEach(p => {
+    const netoCentavos = Math.max(0, Math.round(num(p.calc?.neto) * 100));
+    const entregaCentavos = montoEfectivoParaPago(p);
+    const desglosePersonal = desglosarEfectivo(entregaCentavos / 100);
+    totalSalariosCentavos += netoCentavos;
+    totalEntregaCentavos += entregaCentavos;
+    DENOMINACIONES_EFECTIVO.forEach(d => { totales[d.centavos] += desglosePersonal[d.centavos]; });
+  });
+  const filasBanco = DENOMINACIONES_EFECTIVO.map(d => {
+    const cantidad = totales[d.centavos];
+    return `<tr><td>${d.tipo}</td><td>${d.etiqueta}</td><td>${cantidad}</td><td>${money((cantidad * d.centavos) / 100)}</td></tr>`;
+  }).join('');
+  const { inicio, fin } = semanaPlanillaActual();
+  const redondeado = modoDesgloseEfectivo !== 'exacto';
+  const redondeadoACinco = modoDesgloseEfectivo === 'cinco';
+  const ajuste = totalEntregaCentavos - totalSalariosCentavos;
+  const totalPrincipal = redondeado ? totalEntregaCentavos : totalSalariosCentavos;
+  const modoTexto = modoDesgloseEfectivo === 'dolar'
+    ? 'Redondeo hacia arriba al dolar; sin monedas.'
+    : redondeadoACinco
+      ? 'Redondeo al multiplo de $0.05 mas cercano.'
+      : 'Pago exacto; incluye monedas.';
+  document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DESGLOSE GENERAL DE EFECTIVO</h2><div><strong>Periodo:</strong> ${esc(inicio)} al ${esc(fin)} · <strong>Pagos incluidos:</strong> ${planillas.length} · Calculo por pago individual</div></div><div class="cash-report-options"><label>Forma de efectivo <select onchange="cambiarModoDesgloseEfectivo(this.value)"><option value="exacto" ${modoDesgloseEfectivo === 'exacto' ? 'selected' : ''}>Exacto, con monedas</option><option value="cinco" ${redondeadoACinco ? 'selected' : ''}>Redondear al $0.05</option><option value="dolar" ${modoDesgloseEfectivo === 'dolar' ? 'selected' : ''}>Redondear al dolar</option></select></label><span>${modoTexto}</span></div><div class="cash-report-total">TOTAL GENERAL A RETIRAR: <strong>${money(totalPrincipal / 100)}</strong>${redondeado ? `<small>Salarios exactos: ${money(totalSalariosCentavos / 100)} · Ajuste: ${money(ajuste / 100)}</small>` : ''}</div><table class="payroll-detail-table cash-summary-table"><thead><tr><th>Tipo</th><th>Denominacion</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>${filasBanco}</tbody><tfoot><tr class="grand-total"><th colspan="3">TOTAL GENERAL</th><th>${money(totalPrincipal / 100)}</th></tr></tfoot></table>`;
+  document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir desglose';
+}
 function abrirDesgloseEfectivo() {
   const planillas = planillasSemanaSeleccionada();
   if (!planillas.length) { toast('No hay pagos en la semana seleccionada.'); return; }
+  modoDesgloseEfectivo = 'exacto';
+  renderDesgloseEfectivo(planillas);
+  document.getElementById('payroll-detail-overlay').dataset.reportType = 'cash';
+  document.getElementById('payroll-detail-overlay').classList.add('open');
+  return;
   const totales = Object.fromEntries(DENOMINACIONES_EFECTIVO.map(d => [d.centavos, 0]));
   let totalCentavos = 0;
   planillas.forEach(p => {
@@ -1858,6 +1934,8 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
   const texto = value => vacia ? espacio : esc(value || '');
   const dinero = value => vacia ? espacio : money(value);
   const cantidad = value => vacia ? espacio : num(value).toFixed(2);
+  const netoPago = vacia ? 0 : montoBoletaParaPago(p || boleta) / 100;
+  const ajustePago = netoPago - num(c.neto);
   const otrosLabel = !vacia && emp.descuentoConcepto === 'Casa' ? 'Casa:' : 'Otros:';
   const fechaCorta = fecha => {
     if (vacia || !fecha) return '';
@@ -1912,7 +1990,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
           <div class="receipt-employee-row">
             <div class="receipt-employee-main"><strong>${texto(emp.nombre)}</strong><div>${texto((emp.cargo || emp.departamento || '').toUpperCase())}</div></div>
             <div class="receipt-pay-type"><span>Tipo de pago:</span><strong>${texto(emp.tipoPago || 'Semanal')}</strong></div>
-            <div class="receipt-amount-box"><span>POR:</span><strong>${dinero(c.neto)}</strong></div>
+            <div class="receipt-amount-box"><span>POR:</span><strong>${dinero(netoPago)}</strong></div>
           </div>
           <div class="receipt-columns">
             <div class="receipt-income-col">
@@ -1947,7 +2025,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${deductionLine('Prest.:', c.prestamos)}
               </div>
               <div class="paper-line simple deduction-line descuentos-row"><span class="label">TOTAL DESCUENTOS</span><strong class="amount">${dinero(c.descuentos)}</strong></div>
-              <div class="receipt-signoff"><div><strong>Recibí conforme&nbsp;&nbsp;&nbsp; ${dinero(c.neto)}</strong></div><div class="receipt-sign-line"></div></div>
+              <div class="receipt-signoff"><div><strong>Recibí conforme&nbsp;&nbsp;&nbsp; ${dinero(netoPago)}</strong>${!vacia && modoBoletaPago === 'redondeado' ? `<small class="receipt-rounding-note">Ajuste por redondeo: ${money(ajustePago)}</small>` : ''}</div><div class="receipt-sign-line"></div></div>
             </div>
           </div>
         </div>
@@ -1955,6 +2033,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
     </section>`;
 }
 function mostrarBoletas(boletas) {
+  boletasMostradas = boletas.slice();
   const copias = boletas.map(b => {
     const data = b.data || state.planillas.find(p => p.id === b.planillaId);
     return data ? generarCopiaBoleta(data, b) : generarCopiaBoleta(null, null, true);
@@ -2126,7 +2205,7 @@ function renderHistorial() {
 }
 function renderBoletasDisponibles() {
   const empId = document.getElementById('b-empleado').value;
-  const opciones = state.planillas.filter(p => p.empleadoId === empId && planillaVigente(p)).map(p => `<option value="${p.id}">${esc(periodoTexto(p))} · ${money(p.calc.neto)}${p.boletaGenerada ? ' · ya generada' : ''}</option>`).join('');
+  const opciones = state.planillas.filter(p => p.empleadoId === empId && planillaVigente(p)).map(p => `<option value="${p.id}">${esc(periodoTexto(p))} · ${money(montoBoletaParaPago(p) / 100)}${p.boletaGenerada ? ' · ya generada' : ''}</option>`).join('');
   document.getElementById('b-planilla').innerHTML = opciones || '<option value="">Sin planillas disponibles</option>';
 }
 function renderBoletasGeneradas() {
@@ -2136,7 +2215,7 @@ function renderBoletasGeneradas() {
   if (selectAll) selectAll.checked = false;
   const tbody = document.getElementById('boletas-tbody');
   if (!visibles.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="table-empty">No hay boletas vigentes para imprimir esta semana.</div></td></tr>'; return; }
-  tbody.innerHTML = visibles.slice().reverse().map(b => `<tr><td class="select-cell"><input type="checkbox" class="boleta-check" value="${esc(b.id)}"></td><td>${esc(b.fecha)}</td><td>${esc(b.empleado)}</td><td>${esc(b.periodo)}</td><td>${money(b.devengado)}</td><td class="col-discount">${money(b.descuentos)}</td><td class="col-net">${money(b.neto)}</td><td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="abrirBoleta('${b.id}')">Ver / Imprimir</button><button class="btn btn-amber btn-sm" onclick="editarBoleta('${b.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarBoleta('${b.id}')">Borrar</button></td></tr>`).join('');
+  tbody.innerHTML = visibles.slice().reverse().map(b => `<tr><td class="select-cell"><input type="checkbox" class="boleta-check" value="${esc(b.id)}"></td><td>${esc(b.fecha)}</td><td>${esc(b.empleado)}</td><td>${esc(b.periodo)}</td><td>${money(b.devengado)}</td><td class="col-discount">${money(b.descuentos)}</td><td class="col-net">${money(montoBoletaParaPago(b) / 100)}</td><td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="abrirBoleta('${b.id}')">Ver / Imprimir</button><button class="btn btn-amber btn-sm" onclick="editarBoleta('${b.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarBoleta('${b.id}')">Borrar</button></td></tr>`).join('');
 }
 function setSemanaActual() {
   const monday = lunesDeFecha(todayIso());
