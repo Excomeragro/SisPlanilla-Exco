@@ -359,6 +359,12 @@
   input.visual-extra-nocturna { background:#DBEAFE !important; border-color:#2563EB !important; color:#1D4ED8 !important; }
   input.visual-extra-asueto { background:#FEF3C7 !important; border-color:#F59E0B !important; color:#92400E !important; }
   input.visual-extra-domingo { background:#CFFAFE !important; border-color:#0891B2 !important; color:#155E75 !important; }
+  .form-group label.visual-extra-diurna { background:#F0FDF4; border-left:3px solid #16A34A; color:#166534; padding:4px 6px; border-radius:4px; }
+  .form-group label.visual-extra-nocturna { background:#EFF6FF; border-left:3px solid #2563EB; color:#1D4ED8; padding:4px 6px; border-radius:4px; }
+  .form-group label.visual-extra-asueto { background:#FFFBEB; border-left:3px solid #F59E0B; color:#92400E; padding:4px 6px; border-radius:4px; }
+  .form-group label.visual-extra-domingo { background:#ECFEFF; border-left:3px solid #0891B2; color:#155E75; padding:4px 6px; border-radius:4px; }
+  .form-group label.visual-discount-active { background:#FEF2F2; border-left:3px solid #DC2626; color:#991B1B; padding:4px 6px; border-radius:4px; }
+  .form-group label.visual-no-discount { background:#FFFBEB; border-left:3px solid #F59E0B; color:#92400E; padding:4px 6px; border-radius:4px; }
   .mass-cell-input.mass-extra-diurna { background:#DCFCE7 !important; border-color:#16A34A !important; color:#166534 !important; }
   .mass-cell-input.mass-extra-nocturna { background:#DBEAFE !important; border-color:#2563EB !important; color:#1D4ED8 !important; }
   .mass-cell-input.mass-extra-asueto { background:#FEF3C7 !important; border-color:#F59E0B !important; color:#92400E !important; }
