@@ -1029,10 +1029,19 @@ function actualizarColorNombreMasivo(id) {
   const clases = clasesNombreMasivo(emp);
   if (clases) celda.classList.add(...clases.split(' '));
 }
+function claseAjusteMasivoRapido(campo, dia) {
+  if (campo === 'extraNocturnasDias' && dia === 'domingo') return 'mass-extra-domingo';
+  if (campo === 'extraDias') return 'mass-extra-diurna';
+  if (campo === 'extraNocturnasDias') return 'mass-extra-nocturna';
+  if (campo === 'hAsueto' || campo === 'hAsuetoExtraDiurna' || campo === 'hAsuetoExtraNocturna') return 'mass-extra-asueto';
+  if (campo === 'hDomingo') return 'mass-extra-domingo';
+  return 'mass-extra-ajuste';
+}
 function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const valor = valorAjusteMasivoRapido(id, campo, dia);
   const diaArg = dia ? `'${dia}'` : 'null';
-  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref" type="number" step="${esc(step)}" min="0" placeholder="0" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)">`;
+  const clase = claseAjusteMasivoRapido(campo, dia);
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="number" step="${esc(step)}" min="0" placeholder="0" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)">`;
 }
 function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   const emp = empleadoPorId(id);
@@ -1111,12 +1120,28 @@ function renderPlanillaMasivaRapida() {
     if (clases) cell.classList.add(...clases.split(' '));
   });
 }
+function clasificarCamposMasivos() {
+  document.querySelectorAll('#planilla-masiva-card .mass-hours-grid input').forEach(input => {
+    const id = input.id || '';
+    let clase = '';
+    if (id === 'm-h-domingo' || id === 'm-extra-noct-domingo') clase = 'mass-field-domingo';
+    else if (id === 'm-h-asueto' || id.startsWith('m-asueto-extra-')) clase = 'mass-field-asueto';
+    else if (id.startsWith('m-extra-noct-')) clase = 'mass-field-extra-nocturna';
+    else if (id.startsWith('m-extra-')) clase = 'mass-field-extra-diurna';
+    else if (id === 'm-h-permiso' || id === 'm-dias-sin-permiso' || id === 'm-dias-incapacidad') clase = 'mass-field-descuento';
+    if (clase) {
+      input.classList.add(clase);
+      input.closest('label')?.classList.add(clase);
+    }
+  });
+}
 function renderPlanillaMasiva() {
   const empleados = empleadosPlanillaMasiva();
   document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${ajustesPlanillaMasiva[e.id] ? 'Seleccionado - ' : ''}${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
   renderEmpleadosExtrasFrecuentes();
+  clasificarCamposMasivos();
   renderPlanillaMasivaRapida();
   return;
   const ajustes = Object.entries(ajustesPlanillaMasiva).filter(([id]) => empleadoPorId(id));
@@ -1188,7 +1213,17 @@ function actualizarColoresPlanilla(d, calc) {
   ];
   extras.forEach(([id, value]) => {
     const input = document.getElementById(id);
-    if (input) input.classList.toggle('visual-extra-filled', value > 0);
+    if (!input) return;
+    const clase = id.includes('asueto') || id === 'p-h-asueto'
+      ? 'visual-extra-asueto'
+      : id.includes('domingo')
+        ? 'visual-extra-domingo'
+        : id.includes('noct')
+          ? 'visual-extra-nocturna'
+          : 'visual-extra-diurna';
+    input.classList.remove('visual-extra-diurna', 'visual-extra-nocturna', 'visual-extra-asueto', 'visual-extra-domingo');
+    input.classList.toggle('visual-extra-filled', value > 0);
+    input.classList.toggle(clase, value > 0);
   });
   const descuentos = [
     ['p-h-permiso', d.hPermiso],

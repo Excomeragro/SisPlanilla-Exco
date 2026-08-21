@@ -263,6 +263,11 @@
     font-weight: 700;
     text-transform: uppercase;
   }
+  .mass-hours-grid label.mass-field-extra-diurna { background:#F0FDF4; border-color:#86EFAC; color:#166534; }
+  .mass-hours-grid label.mass-field-extra-nocturna { background:#EFF6FF; border-color:#93C5FD; color:#1D4ED8; }
+  .mass-hours-grid label.mass-field-asueto { background:#FFFBEB; border-color:#FCD34D; color:#92400E; }
+  .mass-hours-grid label.mass-field-domingo { background:#ECFEFF; border-color:#67E8F9; color:#155E75; }
+  .mass-hours-grid label.mass-field-descuento { background:#FEF2F2; border-color:#FCA5A5; color:#991B1B; }
   .mass-hours-grid input { min-width: 0; }
   .mass-selected-row { background: #F0FDF4; }
   .mass-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border); }
@@ -275,6 +280,13 @@
   }
   .section-mini-head h3 { margin: 0 0 2px; font-size: 14px; }
   .section-mini-head p { margin: 0; color: var(--muted); font-size: 11px; }
+  .mass-color-legend { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 8px; }
+  .mass-color-legend span { display:inline-flex; align-items:center; padding:3px 7px; border:1px solid; border-radius:5px; font-size:10px; font-weight:700; }
+  .legend-extra-diurna { background:#DCFCE7; border-color:#86EFAC; color:#166534; }
+  .legend-extra-nocturna { background:#DBEAFE; border-color:#93C5FD; color:#1D4ED8; }
+  .legend-asueto { background:#FEF3C7; border-color:#FCD34D; color:#92400E; }
+  .legend-domingo { background:#CFFAFE; border-color:#67E8F9; color:#155E75; }
+  .legend-descuento { background:#FEE2E2; border-color:#FCA5A5; color:#991B1B; }
   .mass-quick-entry { border-top: 1px solid var(--border); padding-top: 12px; }
   .frequent-extra-section { border-top: 1px solid var(--border); padding-top: 14px; padding-bottom: 12px; }
   .frequent-extra-add { display:flex; align-items:center; gap:8px; min-width:310px; }
@@ -320,6 +332,10 @@
     width: 210px;
   }
   .mass-quick-table thead th:first-child { z-index: 7; background: #0F172A; }
+  .mass-quick-table thead th.mass-group-diurna { background:#166534; }
+  .mass-quick-table thead th.mass-group-nocturna { background:#1D4ED8; }
+  .mass-quick-table thead th.mass-group-asueto { background:#B45309; }
+  .mass-quick-table thead th.mass-group-domingo { background:#0E7490; }
   .mass-name-cell { min-width: 210px; }
   .mass-name-cell .col-name { font-size: 11px; line-height: 1.15; }
   .mass-name-cell .col-sub { font-size: 10px; margin-top: 2px; }
@@ -339,6 +355,15 @@
     color: #166534;
     font-weight: 700;
   }
+  input.visual-extra-diurna { background:#DCFCE7 !important; border-color:#16A34A !important; color:#166534 !important; }
+  input.visual-extra-nocturna { background:#DBEAFE !important; border-color:#2563EB !important; color:#1D4ED8 !important; }
+  input.visual-extra-asueto { background:#FEF3C7 !important; border-color:#F59E0B !important; color:#92400E !important; }
+  input.visual-extra-domingo { background:#CFFAFE !important; border-color:#0891B2 !important; color:#155E75 !important; }
+  .mass-cell-input.mass-extra-diurna { background:#DCFCE7 !important; border-color:#16A34A !important; color:#166534 !important; }
+  .mass-cell-input.mass-extra-nocturna { background:#DBEAFE !important; border-color:#2563EB !important; color:#1D4ED8 !important; }
+  .mass-cell-input.mass-extra-asueto { background:#FEF3C7 !important; border-color:#F59E0B !important; color:#92400E !important; }
+  .mass-cell-input.mass-extra-domingo { background:#CFFAFE !important; border-color:#0891B2 !important; color:#155E75 !important; }
+  .mass-cell-input.mass-extra-ajuste { background:#FEE2E2 !important; border-color:#DC2626 !important; color:#991B1B !important; }
   .mass-name-cell.mass-name-has-extra {
     background: #F0FDF4 !important;
     color: #166534;
