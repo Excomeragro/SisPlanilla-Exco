@@ -582,10 +582,6 @@
   .cash-report-total strong { margin-left: 10px; font-size: 16px; }
   .cash-summary-table { max-width: 520px; margin: 0 auto 12px; }
   .cash-summary-table th:first-child, .cash-summary-table td:first-child { min-width: 90px; }
-  .cash-report-options { max-width: 520px; margin: 0 auto 10px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 9px; border:1px solid #CBD5E1; border-radius:6px; background:#F8FAFC; font-size:11px; }
-  .cash-report-options label { display:flex; align-items:center; gap:7px; font-weight:700; }
-  .cash-report-options select { border:1px solid #CBD5E1; border-radius:5px; padding:5px 7px; background:#fff; color:#0F172A; }
-  .cash-report-options span { color:#64748B; text-align:right; }
   .cash-report-total small { display:block; margin-top:3px; color:#64748B; font-size:11px; font-weight:400; }
   .payroll-detail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   #receipt-overlay {
@@ -745,10 +741,6 @@
   .receipt-sign-line { border-bottom: 2px solid #111; height: 38px; }
   .receipt-footer { display: none; }
   .receipt-actions { display:flex; gap:8px; padding: 0 24px 20px; justify-content:flex-end; align-items:center; }
-  .boleta-payment-control { display:flex; align-items:center; gap:7px; margin-right:auto; font-size:11px; color:#475569; font-weight:700; }
-  .boleta-payment-control span { white-space:nowrap; }
-  .boleta-payment-select { border:1px solid #CBD5E1; border-radius:5px; padding:6px 8px; background:#fff; color:#0F172A; font:inherit; font-weight:600; }
-  .receipt-rounding-note { display:block; margin-top:3px; color:#64748B; font-size:10px; font-weight:400; }
   #toast {
     position: fixed;
     right: 24px;
@@ -819,7 +811,6 @@
     body.printing-payroll-detail .payroll-detail-table .area-title-row th { padding:3px 4px !important; }
     body.printing-payroll-detail .cash-report-total { margin-bottom:5px !important; padding:4px 8px !important; font-size:9px !important; }
     body.printing-payroll-detail .cash-report-total strong { font-size:11px !important; }
-    body.printing-payroll-detail .cash-report-options { display:none !important; }
     body.printing-payroll-detail .cash-summary-table { margin-bottom:6px !important; }
     body.printing-cash-report .payroll-report-header { margin-bottom:14px !important; }
     body.printing-cash-report .payroll-report-header h1 { font-size:22px !important; }

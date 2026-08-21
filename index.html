@@ -359,7 +359,7 @@
             <div class="form-group span2"><label>Empleado con planilla</label><select id="b-empleado" onchange="renderBoletasDisponibles()"></select></div>
             <div class="form-group span2"><label>Planilla pendiente / registrada</label><select id="b-planilla"></select></div>
           </div>
-          <div class="btn-row"><button class="btn btn-primary" onclick="generarBoletaSeleccionada()">Ver boleta</button><button class="btn btn-success" onclick="imprimirBoletaSeleccionada()">Imprimir boleta</button><button class="btn btn-ghost" onclick="renderBoletasGeneradas()">Actualizar lista</button><label class="boleta-payment-control"><span>Forma de pago</span><select id="boleta-modo-pago" class="boleta-payment-select" onchange="cambiarModoBoleta(this.value)"><option value="normal">Normal</option><option value="redondeado">Redondeado a $0.05</option></select></label></div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="generarBoletaSeleccionada()">Ver boleta</button><button class="btn btn-success" onclick="imprimirBoletaSeleccionada()">Imprimir boleta</button><button class="btn btn-ghost" onclick="renderBoletasGeneradas()">Actualizar lista</button></div>
         </div>
       </div>
       <div class="card">
@@ -488,7 +488,7 @@
       <div class="receipt-signoff"><div style="text-align:right;">Recibí conforme&nbsp;&nbsp;&nbsp; <strong id="rec-neto"></strong></div><div class="receipt-sign-line"></div></div>
     </div>
     <div class="receipt-footer" id="rec-footer">Documento generado por SisPlanilla Exco</div>
-    <div class="receipt-actions"><label class="boleta-payment-control"><span>Forma de pago</span><select id="receipt-modo-pago" class="boleta-payment-select" onchange="cambiarModoBoleta(this.value)"><option value="normal">Normal</option><option value="redondeado">Redondeado a $0.05</option></select></label><button class="btn btn-ghost btn-sm" onclick="cerrarRecibo()">Cerrar</button><button class="btn btn-primary btn-sm" onclick="imprimirRecibo()">Imprimir</button></div>
+    <div class="receipt-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarRecibo()">Cerrar</button><button class="btn btn-primary btn-sm" onclick="imprimirRecibo()">Imprimir</button></div>
   </div>
 </div>
 <div id="toast">Listo</div>
