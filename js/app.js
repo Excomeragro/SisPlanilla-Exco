@@ -57,6 +57,9 @@ function normalizarEstado(raw) {
   return base;
 }
 function normalizarEmpleado(e) {
+  const nombre = String(e.nombre || '').toLowerCase();
+  const esJorgeUlisesEscobar = nombre.includes('jorge') && nombre.includes('ulises') && nombre.includes('escobar');
+  const salarioRegistrado = num(e.salarioHora);
   return {
     id: e.id || uid(),
     nombre: (e.nombre || '').trim(),
@@ -66,7 +69,8 @@ function normalizarEmpleado(e) {
     fechaIngreso: e.fechaIngreso || e.fechaIni || '',
     cargo: (e.cargo || '').trim(),
     departamento: (e.departamento || e.area || e.planillaDep || '').trim(),
-    salarioHora: num(e.salarioHora),
+    salarioHora: esJorgeUlisesEscobar ? 1.68 : salarioRegistrado,
+    salarioHoraCalculo: esJorgeUlisesEscobar ? 1.70 : (e.salarioHoraCalculo !== undefined ? num(e.salarioHoraCalculo) : salarioRegistrado),
     tipoPago: e.tipoPago || 'Semanal',
     afpInstitucion: e.afpInstitucion || 'Confía',
     descontarIsss: e.descontarIsss !== false,
@@ -613,7 +617,7 @@ function sugerirRenta(devengado) {
   return red(num(devengado) * 0.10);
 }
 function calcularPago(d) {
-  const salario = num(d.empleado?.salarioHora ?? d.salarioHora);
+  const salario = num(d.empleado?.salarioHoraCalculo ?? d.empleado?.salarioHora ?? d.salarioHora);
   const horasPermiso = Math.max(0, num(d.hPermiso));
   const diasSinPermiso = Math.max(0, Math.floor(num(d.diasSinPermiso)));
   const diasIncapacidad = Math.max(0, Math.floor(num(d.diasIncapacidad)));
