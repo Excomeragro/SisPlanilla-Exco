@@ -2301,16 +2301,41 @@ function exportarGananciasMensuales() {
 }
 
 function imprimirGananciasMensuales() {
-  const tabla = document.getElementById('gm-tabla');
+  const { anio, empleados, mesesParaMostrar, gananciasPorEmpleadoMes } = datosGananciasMensualesActuales();
+  const nombreMes = mesesParaMostrar.length === 1 ? mesesParaMostrar[0].nombre : 'Todos los meses';
+  const filas = [];
+  let totalNeto = 0;
+  let totalDevengado = 0;
+
+  empleados.forEach(e => {
+    mesesParaMostrar.forEach(mes => {
+      const pagosMes = (gananciasPorEmpleadoMes[e.id] && gananciasPorEmpleadoMes[e.id][mes.clave]) || [];
+      pagosMes.forEach(pago => {
+        const neto = num(pago.neto || 0);
+        const devengado = num(pago.devengado || 0);
+        totalNeto += neto;
+        totalDevengado += devengado;
+        filas.push(`<tr><td>${esc(pago.periodo || mes.nombre + ' ' + anio)}</td><td>${esc(e.nombre)}</td><td>${esc(e.dui || '—')}</td><td>${esc(e.cargo || '—')}</td><td class="money">${money(neto)}</td><td class="money">${money(devengado)}</td></tr>`);
+      });
+    });
+  });
+
+  if (!filas.length) {
+    alert('No hay datos para imprimir con los filtros actuales.');
+    return;
+  }
+
   const ventana = window.open('', '', 'height=600,width=900');
   ventana.document.write('<html><head><title>Ganancias Mensuales</title>');
-  ventana.document.write('<style>body{font-family:Arial;font-size:10pt;margin:10px;}table{width:100%;border-collapse:collapse;margin:10px 0;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}th{background:#f0f0f0;font-weight:bold;}.col-money{text-align:right;}.badge{padding:2px 6px;border-radius:3px;font-size:9pt;}.badge-green{background:#c8e6c9;color:#2e7d32;}.badge-red{background:#ffcdd2;color:#c62828;}</style>');
+  ventana.document.write('<style>@page{size:letter landscape;margin:12mm;}body{font-family:Arial,sans-serif;font-size:9pt;margin:0;color:#111;}h2{margin:0 0 4px;font-size:15pt;}p{margin:0 0 12px;color:#444;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #888;padding:6px 7px;text-align:left;}th{background:#e9e9e9;font-weight:bold;}td.money,th.money{text-align:right;white-space:nowrap;}tfoot td{font-weight:bold;background:#f4f4f4;}tr{break-inside:avoid;}</style>');
   ventana.document.write('</head><body>');
   ventana.document.write('<h2>Reporte de Ganancias Mensuales</h2>');
-  ventana.document.write(tabla.outerHTML);
+  ventana.document.write('<p>Año: ' + anio + ' · ' + nombreMes + ' · Generado: ' + todayIso() + '</p>');
+  ventana.document.write('<table><thead><tr><th>Período</th><th>Nombre</th><th>DUI</th><th>Cargo</th><th class="money">Pago con descuentos</th><th class="money">Pago sin descuentos</th></tr></thead><tbody>' + filas.join('') + '</tbody><tfoot><tr><td colspan="4">TOTAL</td><td class="money">' + money(totalNeto) + '</td><td class="money">' + money(totalDevengado) + '</td></tr></tfoot></table>');
   ventana.document.write('</body></html>');
   ventana.document.close();
-  ventana.print();
+  ventana.focus();
+  ventana.onload = () => ventana.print();
 }
 
 function datosGananciasMensualesActuales() {
