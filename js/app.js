@@ -2308,7 +2308,7 @@ function imprimirGananciasMensuales() {
   let totalDevengado = 0;
 
   empleados.forEach(e => {
-    const periodos = [];
+    const mesesEmpleado = [];
     let netoEmpleado = 0;
     let devengadoEmpleado = 0;
     mesesParaMostrar.forEach(mes => {
@@ -2316,16 +2316,15 @@ function imprimirGananciasMensuales() {
       pagosMes.forEach(pago => {
         const neto = num(pago.neto || 0);
         const devengado = num(pago.devengado || 0);
-        const periodo = pago.periodo || mes.nombre + ' ' + anio;
-        if (!periodos.includes(periodo)) periodos.push(periodo);
+        if (!mesesEmpleado.includes(mes.nombre)) mesesEmpleado.push(mes.nombre);
         netoEmpleado += neto;
         devengadoEmpleado += devengado;
       });
     });
-    if (netoEmpleado || devengadoEmpleado || periodos.length) {
+    if (netoEmpleado || devengadoEmpleado || mesesEmpleado.length) {
       totalNeto += netoEmpleado;
       totalDevengado += devengadoEmpleado;
-      filas.push(`<tr><td>${esc(e.nombre)}</td><td>${esc(e.dui || '—')}</td><td>${esc(e.cargo || '—')}</td><td>${e.estado === 'activo' ? 'Activo' : 'Inactivo'}</td><td>${esc(periodos.join(', '))}</td><td class="money">${money(netoEmpleado)}</td><td class="money">${money(devengadoEmpleado)}</td></tr>`);
+      filas.push(`<tr><td>${esc(e.nombre)}</td><td>${esc(e.dui || '—')}</td><td>${esc(e.cargo || '—')}</td><td>${e.estado === 'activo' ? 'Activo' : 'Inactivo'}</td><td>${esc(mesesEmpleado.join(', '))}</td><td class="money">${money(netoEmpleado)}</td><td class="money">${money(devengadoEmpleado)}</td></tr>`);
     }
   });
 
@@ -2340,7 +2339,7 @@ function imprimirGananciasMensuales() {
   ventana.document.write('</head><body>');
   ventana.document.write('<h2>Reporte de Ganancias Mensuales</h2>');
   ventana.document.write('<p>Año: ' + anio + ' · ' + nombreMes + ' · Generado: ' + todayIso() + '</p>');
-  ventana.document.write('<table><thead><tr><th>Nombre</th><th>DUI</th><th>Cargo</th><th>Estado</th><th>Período(s)</th><th class="money">Pago con descuentos</th><th class="money">Pago sin descuentos</th></tr></thead><tbody>' + filas.join('') + '</tbody><tfoot><tr><td colspan="5">TOTAL</td><td class="money">' + money(totalNeto) + '</td><td class="money">' + money(totalDevengado) + '</td></tr></tfoot></table>');
+  ventana.document.write('<table><thead><tr><th>Nombre</th><th>DUI</th><th>Cargo</th><th>Estado</th><th>Mes</th><th class="money">Pago con descuentos</th><th class="money">Pago sin descuentos</th></tr></thead><tbody>' + filas.join('') + '</tbody><tfoot><tr><td colspan="5">TOTAL</td><td class="money">' + money(totalNeto) + '</td><td class="money">' + money(totalDevengado) + '</td></tr></tfoot></table>');
   ventana.document.write('</body></html>');
   ventana.document.close();
   ventana.focus();
