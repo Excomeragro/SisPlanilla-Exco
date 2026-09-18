@@ -339,6 +339,7 @@
   .mass-name-cell { min-width: 210px; }
   .mass-name-cell .col-name { font-size: 11px; line-height: 1.15; }
   .mass-name-cell .col-sub { font-size: 10px; margin-top: 2px; }
+  .mass-saved-status { color:#166534; font-size:9px; font-weight:700; line-height:1.1; margin-top:2px; white-space:nowrap; }
   .mass-cell-input {
     width: 42px;
     min-width: 42px;

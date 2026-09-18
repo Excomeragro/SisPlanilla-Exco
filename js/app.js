@@ -1025,6 +1025,18 @@ function clasesNombreMasivo(emp) {
     tieneExtra && !tieneDescuento ? 'mass-name-no-discount' : ''
   ].filter(Boolean).join(' ');
 }
+function resumenHorasAjusteMasivo(ajuste) {
+  if (!tieneValoresAjusteMasivo(ajuste)) return '';
+  const partes = [];
+  const diurnas = totalHorasExtraLaboral(ajuste.extraDias);
+  const nocturnas = totalHorasExtraLaboral(ajuste.extraNocturnasDias);
+  if (diurnas > 0) partes.push(`D ${diurnas.toFixed(2)}h`);
+  if (nocturnas > 0) partes.push(`N ${nocturnas.toFixed(2)}h`);
+  if (num(ajuste.hAsueto) > 0 || num(ajuste.hAsuetoExtraDiurna) > 0 || num(ajuste.hAsuetoExtraNocturna) > 0) partes.push('Asueto');
+  if (num(ajuste.hDomingo) > 0 || num(ajuste.extraNocturnasDias?.domingo) > 0) partes.push('Domingo');
+  if (num(ajuste.hPermiso) > 0 || num(ajuste.diasSinPermiso) > 0 || num(ajuste.diasIncapacidad) > 0) partes.push('Descuento');
+  return partes.join(' · ');
+}
 function actualizarColorNombreMasivo(id) {
   const emp = empleadoPorId(id);
   const celda = [...document.querySelectorAll('[data-mass-employee]')].find(el => el.dataset.massEmployee === id);
@@ -1090,13 +1102,18 @@ function renderPlanillaMasivaRapida() {
   if (!tbody) return;
   const busqueda = textoNormalizado(document.getElementById('m-rapida-buscar')?.value);
   const empleados = empleadosPlanillaMasiva().filter(emp => !busqueda || textoNormalizado(emp.nombre).includes(busqueda) || textoNormalizado(emp.dui).includes(busqueda));
+  const { inicio, fin } = semanaMasivaActual();
   if (!empleados.length) {
     tbody.innerHTML = '<tr><td colspan="18"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
     return;
   }
   tbody.innerHTML = empleados.map(emp => {
     const id = emp.id;
-    return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} Â· ${esc(emp.cargo)}</div></td>
+    const ajuste = ajustesPlanillaMasiva[id];
+    const resumenGuardado = resumenHorasAjusteMasivo(ajuste);
+    const planillaCreada = !!state.planillas.find(p => p.empleadoId === id && p.fechaInicio === inicio && p.fechaFin === fin);
+    const estadoHoras = resumenGuardado ? `Guardado: ${resumenGuardado}${planillaCreada ? ' · Planilla lista' : ''}` : '';
+    return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} Â· ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}</td>
       <td>${inputAjusteMasivoRapido(id, 'extraDias', 'lunes', 'Lunes extra')}</td>
       <td>${inputAjusteMasivoRapido(id, 'extraDias', 'martes', 'Martes extra')}</td>
       <td>${inputAjusteMasivoRapido(id, 'extraDias', 'miercoles', 'Miercoles extra')}</td>
@@ -1337,7 +1354,9 @@ function crearPlanillasMasivas() {
   if (!empleados.length) { toast('No hay empleados disponibles.'); return; }
   empleados.forEach(emp => {
     const existenteIdx = state.planillas.findIndex(p => p.empleadoId === emp.id && p.fechaInicio === inicio && p.fechaFin === fin);
-    if (existenteIdx >= 0 && state.planillas[existenteIdx].origen !== 'masiva') return;
+    const tieneAjuste = tieneValoresAjusteMasivo(ajustesPlanillaMasiva[emp.id]);
+    // Una planilla manual se conserva, excepto cuando el usuario capturo un ajuste masivo para ese empleado.
+    if (existenteIdx >= 0 && state.planillas[existenteIdx].origen !== 'masiva' && !tieneAjuste) return;
     const datos = datosPlanillaMasivaEmpleado(emp);
     const registro = construirRegistroPlanilla(datos, existenteIdx >= 0 ? state.planillas[existenteIdx].id : null);
     if (existenteIdx >= 0) state.planillas[existenteIdx] = registro; else state.planillas.push(registro);
