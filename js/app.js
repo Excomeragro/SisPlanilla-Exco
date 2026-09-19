@@ -758,6 +758,7 @@ function cargarEmpleadoPlanilla() {
   document.getElementById('p-cargo').value = emp?.cargo || '';
   document.getElementById('p-departamento').value = emp?.departamento || '';
   document.getElementById('p-salario-hora').value = emp?.salarioHora || '';
+  ponerNumeroReferencia('p-ingreso-fijo', emp?.ingresoFijo);
   const proporcional = pagoProporcionalSalida(emp);
   const salidaInfo = document.getElementById('p-salida-info');
   if (salidaInfo) {
@@ -1227,7 +1228,7 @@ function datosPlanillaForm() {
     hPermiso: num(document.getElementById('p-h-permiso').value),
     diasSinPermiso: Math.max(0, Math.floor(num(document.getElementById('p-dias-sin-permiso').value))),
     diasIncapacidad: Math.max(0, Math.floor(num(document.getElementById('p-dias-incapacidad').value))),
-    otrosIngresos: num(emp?.ingresoFijo),
+    otrosIngresos: num(document.getElementById('p-ingreso-fijo')?.value),
     aplicarRenta: document.getElementById('p-aplicar-renta').checked,
     aplicarIsss: emp?.descontarIsss !== false,
     aplicarAfp: emp?.descontarAfp !== false,
@@ -1328,6 +1329,7 @@ function construirRegistroPlanilla(d, id) {
 function guardarRegistroPlanilla() {
   const d = datosPlanillaForm();
   if (!d.empleado) { toast('Selecciona un empleado disponible.'); return; }
+  d.empleado.ingresoFijo = num(d.otrosIngresos);
   if (!empleadoDisponiblePlanilla(d.empleado)) { toast('Ese empleado ya está en la planilla actual.'); return; }
   if (!d.fechaInicio || !d.fechaFin) { toast('Selecciona la semana de pago.'); return; }
   const registro = construirRegistroPlanilla(d, planillaEditId);
@@ -1448,6 +1450,7 @@ function editarPlanilla(id) {
   document.getElementById('p-empleado').value = p.empleadoId;
   document.getElementById('p-empleado-buscar').value = p.empleadoSnapshot.nombre;
   cargarEmpleadoPlanilla();
+  ponerNumeroReferencia('p-ingreso-fijo', p.otrosIngresos);
   document.getElementById('p-h-ordinarias').value = p.hOrdinarias;
   cargarExtraDiasForm(p.extraDias);
   cargarExtraNocturnasForm(p.extraNocturnasDias);
