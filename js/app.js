@@ -58,7 +58,10 @@ function normalizarEstado(raw) {
 }
 function normalizarEmpleado(e) {
   const nombre = String(e.nombre || '').toLowerCase();
+  const nombreSimple = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const esJorgeUlisesEscobar = nombre.includes('jorge') && nombre.includes('ulises') && nombre.includes('escobar');
+  const esBonoFijo20 = (nombreSimple.includes('roberto') && nombreSimple.includes('ernesto') && nombreSimple.includes('gudiel'))
+    || (nombreSimple.includes('palacios') && nombreSimple.includes('juan') && nombreSimple.includes('alberto'));
   const salarioRegistrado = num(e.salarioHora);
   return {
     id: e.id || uid(),
@@ -78,6 +81,7 @@ function normalizarEmpleado(e) {
     aplicarRenta: !!e.aplicarRenta,
     descuentoConcepto: ['Prestamo', 'Casa', 'Otro'].includes(e.descuentoConcepto) ? e.descuentoConcepto : '',
     descuentoFijo: num(e.descuentoFijo),
+    ingresoFijo: e.ingresoFijo !== undefined ? num(e.ingresoFijo) : (esBonoFijo20 ? 20 : 0),
     contactoNombre: (e.contactoNombre || '').trim(),
     contactoTelefono: (e.contactoTelefono || '').trim(),
     contactoParentesco: (e.contactoParentesco || e.parentesco || '').trim(),
@@ -1223,7 +1227,7 @@ function datosPlanillaForm() {
     hPermiso: num(document.getElementById('p-h-permiso').value),
     diasSinPermiso: Math.max(0, Math.floor(num(document.getElementById('p-dias-sin-permiso').value))),
     diasIncapacidad: Math.max(0, Math.floor(num(document.getElementById('p-dias-incapacidad').value))),
-    otrosIngresos: 0,
+    otrosIngresos: num(emp?.ingresoFijo),
     aplicarRenta: document.getElementById('p-aplicar-renta').checked,
     aplicarIsss: emp?.descontarIsss !== false,
     aplicarAfp: emp?.descontarAfp !== false,
@@ -1360,7 +1364,7 @@ function datosPlanillaMasivaEmpleado(emp) {
     hPermiso: num(ajuste.hPermiso),
     diasSinPermiso: Math.max(0, Math.floor(num(ajuste.diasSinPermiso))),
     diasIncapacidad: Math.max(0, Math.floor(num(ajuste.diasIncapacidad))),
-    otrosIngresos: 0,
+    otrosIngresos: num(emp.ingresoFijo),
     aplicarRenta: !!emp.aplicarRenta,
     aplicarIsss: emp.descontarIsss !== false,
     aplicarAfp: emp.descontarAfp !== false,
@@ -1393,7 +1397,7 @@ function fusionarDatosMasivosConPlanilla(datos, existente) {
   datos.hPermiso = tomar(datos.hPermiso, existente.hPermiso);
   datos.diasSinPermiso = Math.max(0, Math.floor(tomar(datos.diasSinPermiso, existente.diasSinPermiso)));
   datos.diasIncapacidad = Math.max(0, Math.floor(tomar(datos.diasIncapacidad, existente.diasIncapacidad)));
-  datos.otrosIngresos = num(existente.otrosIngresos);
+  datos.otrosIngresos = num(datos.otrosIngresos) > 0 ? num(datos.otrosIngresos) : num(existente.otrosIngresos);
   datos.prestamos = num(existente.prestamos);
   datos.otrosDescuentos = num(existente.otrosDescuentos);
   datos.aplicarRenta = existente.aplicarRenta !== undefined ? !!existente.aplicarRenta : datos.aplicarRenta;
@@ -1576,6 +1580,7 @@ function leerEmpleadoForm() {
     aplicarRenta: document.getElementById('e-desc-renta').checked,
     descuentoConcepto: document.getElementById('e-descuento-concepto').value,
     descuentoFijo: document.getElementById('e-descuento-fijo').value,
+    ingresoFijo: document.getElementById('e-ingreso-fijo').value,
     estado: document.getElementById('e-estado').value,
     fechaSalida: document.getElementById('e-fecha-salida').value,
     contactoNombre: document.getElementById('e-contacto-nombre').value,
@@ -1621,6 +1626,7 @@ function editarEmpleado(id) {
   document.getElementById('e-desc-renta').checked = !!e.aplicarRenta;
   document.getElementById('e-descuento-concepto').value = e.descuentoConcepto || '';
   document.getElementById('e-descuento-fijo').value = num(e.descuentoFijo) > 0 ? e.descuentoFijo : '';
+  document.getElementById('e-ingreso-fijo').value = num(e.ingresoFijo) > 0 ? e.ingresoFijo : '';
   document.getElementById('e-estado').value = e.estado;
   document.getElementById('e-fecha-salida').value = e.fechaSalida;
   document.getElementById('e-contacto-nombre').value = e.contactoNombre;
@@ -1644,6 +1650,7 @@ function limpiarEmpleadoForm(reset = true) {
   document.getElementById('e-desc-renta').checked = false;
   document.getElementById('e-descuento-concepto').value = '';
   document.getElementById('e-descuento-fijo').value = '';
+  document.getElementById('e-ingreso-fijo').value = '';
   document.getElementById('empleado-form-title').textContent = 'Registro completo de empleado';
   document.getElementById('empleado-mode').textContent = 'Nuevo';
   document.getElementById('empleado-mode').className = 'badge badge-blue';
@@ -2009,6 +2016,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${line('H. Extr. Nocturnas:', p?.hExtraNocturna, c.extraNocturna)}
                 ${line('H. Desc./Sept:', c.horasSeptimoPagadas ?? p?.hSeptimo, c.septimo)}
                 ${line('H. Asueto:', p?.hAsueto, c.asueto)}
+                ${simple('Bono adicional:', c.otrosIngresos)}
                 ${line('H. Ext. Asueto D.:', p?.hAsuetoExtraDiurna, c.asuetoExtraDiurna)}
                 ${line('H. Ext. Asueto N.:', p?.hAsuetoExtraNocturna, c.asuetoExtraNocturna)}
                 ${asistenciaNota}
@@ -2150,7 +2158,7 @@ function renderEmpleados() {
       <td>${esc(e.fechaIngreso || '—')}</td>
       <td>${esc(e.cargo)}</td>
       <td>${esc(e.departamento)}</td>
-      <td>${money(e.salarioHora)}</td>
+      <td><div>${money(e.salarioHora)}</div>${num(e.ingresoFijo) > 0 ? `<div class="col-sub">+${money(e.ingresoFijo)} fijo</div>` : ''}</td>
       <td>${descuentosEmpleadoHtml(e)}</td>
       <td>${e.estado === 'activo' ? '<span class="badge badge-green">🟢 Activo</span>' : '<span class="badge badge-red">🔴 Inactivo</span>'}</td>
       <td class="actions-cell">${empleadoAplicaSemana(e) ? (empleadoDisponiblePlanilla(e) ? `<button class="btn btn-success btn-sm" onclick="crearPlanillaDesdeEmpleado('${e.id}')">Crear planilla</button>` : '<span class="badge badge-blue">Ya registrada</span>') : ''}<button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
