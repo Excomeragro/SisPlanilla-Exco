@@ -57,7 +57,27 @@ function prepararEntradasDeHoras() {
     input.type = 'text';
     input.inputMode = 'decimal';
     input.placeholder = input.placeholder || '0 o 1:30';
+    input.addEventListener('change', () => validarHoraCampo(input));
   });
+}
+function formatoHoraInvalido(valor) {
+  const texto = String(valor ?? '').trim();
+  if (!texto) return false;
+  const conDosPuntos = texto.match(/^\d+(?::(\d{1,2}))$/);
+  if (conDosPuntos) return Number(conDosPuntos[1]) >= 60;
+  const conPunto = texto.match(/^\d+\.(\d+)$/);
+  if (conPunto) return conPunto[1].length !== 2 || Number(conPunto[1]) >= 60;
+  return false;
+}
+function validarHoraCampo(input) {
+  const invalido = formatoHoraInvalido(input.value);
+  input.setCustomValidity(invalido ? 'Usa horas como 1:30. Si usas punto, escribe minutos de 00 a 59.' : '');
+  if (invalido) {
+    input.reportValidity();
+    input.value = '';
+    input.setCustomValidity('');
+  }
+  return !invalido;
 }
 function money(v) { return '$' + num(v).toFixed(2); }
 function iso(d) {
@@ -1117,7 +1137,8 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
   const tipo = esDias ? 'number' : 'text';
   const ayuda = esDias ? '0' : '0 o 1:30';
-  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)">`;
+  const validar = esDias ? '' : ' onchange="validarHoraCampo(this)"';
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}>`;
 }
 function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   const emp = empleadoPorId(id);
