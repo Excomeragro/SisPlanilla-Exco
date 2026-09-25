@@ -26,7 +26,39 @@ let ultimoEstadoEnviado = '';
 let conexionSupabaseId = 0;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+function num(v) {
+  if (typeof v === 'string') {
+    const texto = v.trim().replace(',', '.');
+    const partes = texto.match(/^(\d+(?:\.\d+)?):(\d{1,2})$/);
+    if (partes) {
+      const minutos = Number(partes[2]);
+      return minutos < 60 ? Number(partes[1]) + minutos / 60 : 0;
+    }
+    v = texto;
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function prepararEntradasDeHoras() {
+  const ids = [
+    'm-h-ordinarias', 'm-h-septimo', 'm-h-asueto', 'm-h-domingo', 'm-h-permiso',
+    'm-asueto-extra-diurna', 'm-asueto-extra-nocturna',
+    'p-h-ordinarias', 'p-h-septimo', 'p-h-asueto', 'p-extra-domingo', 'p-h-permiso',
+    'p-asueto-extra-diurna', 'p-asueto-extra-nocturna',
+    'p-extra-lunes', 'p-extra-martes', 'p-extra-miercoles', 'p-extra-jueves', 'p-extra-viernes', 'p-extra-sabado',
+    'p-extra-noct-lunes', 'p-extra-noct-martes', 'p-extra-noct-miercoles', 'p-extra-noct-jueves', 'p-extra-noct-viernes', 'p-extra-noct-sabado', 'p-extra-noct-domingo',
+    'm-extra-lunes', 'm-extra-martes', 'm-extra-miercoles', 'm-extra-jueves', 'm-extra-viernes', 'm-extra-sabado',
+    'm-extra-noct-lunes', 'm-extra-noct-martes', 'm-extra-noct-miercoles', 'm-extra-noct-jueves', 'm-extra-noct-viernes', 'm-extra-noct-sabado', 'm-extra-noct-domingo'
+  ];
+  ids.forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.placeholder = input.placeholder || '0 o 1:30';
+  });
+}
 function money(v) { return '$' + num(v).toFixed(2); }
 function iso(d) {
   const year = d.getFullYear();
@@ -1082,7 +1114,10 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const valor = valorAjusteMasivoRapido(id, campo, dia);
   const diaArg = dia ? `'${dia}'` : 'null';
   const clase = claseAjusteMasivoRapido(campo, dia);
-  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="number" step="${esc(step)}" min="0" placeholder="0" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)">`;
+  const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
+  const tipo = esDias ? 'number' : 'text';
+  const ayuda = esDias ? '0' : '0 o 1:30';
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)">`;
 }
 function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   const emp = empleadoPorId(id);
@@ -2537,6 +2572,7 @@ function exportarPDFGananciasMensuales() {
 }
 
 document.getElementById('today-pill').textContent = new Date().toLocaleDateString('es-SV', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+prepararEntradasDeHoras();
 prepararVistaPlanillaMasiva();
 setSemanaActual();
 setSemanaMasivaActual();
