@@ -56,7 +56,7 @@ function prepararEntradasDeHoras() {
     if (!input) return;
     input.type = 'text';
     input.inputMode = 'decimal';
-    input.placeholder = input.placeholder || '0 o 1:30';
+    input.placeholder = input.placeholder || '0, 0.25, 0.50 o 0.75';
     input.addEventListener('change', () => validarHoraCampo(input));
   });
 }
@@ -66,12 +66,15 @@ function formatoHoraInvalido(valor) {
   const conDosPuntos = texto.match(/^\d+(?::(\d{1,2}))$/);
   if (conDosPuntos) return Number(conDosPuntos[1]) >= 60;
   const conPunto = texto.match(/^\d+\.(\d+)$/);
-  if (conPunto) return conPunto[1].length !== 2 || Number(conPunto[1]) >= 60;
+  if (conPunto) {
+    const fraccion = conPunto[1].padEnd(2, '0');
+    return !['00', '25', '50', '75'].includes(fraccion);
+  }
   return false;
 }
 function validarHoraCampo(input) {
   const invalido = formatoHoraInvalido(input.value);
-  input.setCustomValidity(invalido ? 'Usa horas como 1:30. Si usas punto, escribe minutos de 00 a 59.' : '');
+  input.setCustomValidity(invalido ? 'Usa horas enteras o cuartos: 0.25, 0.50 o 0.75.' : '');
   if (invalido) {
     input.reportValidity();
     input.value = '';
@@ -762,16 +765,26 @@ function ponerNumeroReferencia(id, value) {
   const el = document.getElementById(id);
   if (el) el.value = num(value) > 0 ? num(value) : '';
 }
+function formatoHoraGuardada(value) {
+  const horas = num(value);
+  if (horas <= 0) return '';
+  if (Number.isInteger(horas)) return String(horas);
+  return horas.toFixed(2);
+}
+function ponerHoraReferencia(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = formatoHoraGuardada(value);
+}
 function cargarExtraDiasForm(extraDias) {
   const normalizados = normalizarExtraDias(extraDias);
   EXTRA_DIAS.forEach(d => {
     const el = document.getElementById('p-extra-' + d.key);
-    if (el) el.value = num(normalizados[d.key]) > 0 ? normalizados[d.key] : '';
+    if (el) el.value = formatoHoraGuardada(normalizados[d.key]);
   });
 }
 function cargarExtraNocturnasForm(extraDias) {
   const normalizados = normalizarExtraDias(extraDias);
-  EXTRA_DIAS.forEach(d => ponerNumeroReferencia('p-extra-noct-' + d.key, normalizados[d.key]));
+  EXTRA_DIAS.forEach(d => ponerHoraReferencia('p-extra-noct-' + d.key, normalizados[d.key]));
 }
 
 function showTab(tab) {
@@ -1136,7 +1149,7 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const clase = claseAjusteMasivoRapido(campo, dia);
   const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
   const tipo = esDias ? 'number' : 'text';
-  const ayuda = esDias ? '0' : '0 o 1:30';
+  const ayuda = esDias ? '0' : '0, 0.25, 0.50 o 0.75';
   const validar = esDias ? '' : ' onchange="validarHoraCampo(this)"';
   return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}>`;
 }
@@ -1507,14 +1520,14 @@ function editarPlanilla(id) {
   document.getElementById('p-empleado-buscar').value = p.empleadoSnapshot.nombre;
   cargarEmpleadoPlanilla();
   ponerNumeroReferencia('p-ingreso-fijo', p.otrosIngresos);
-  document.getElementById('p-h-ordinarias').value = p.hOrdinarias;
+  ponerHoraReferencia('p-h-ordinarias', p.hOrdinarias);
   cargarExtraDiasForm(p.extraDias);
   cargarExtraNocturnasForm(p.extraNocturnasDias);
-  document.getElementById('p-h-septimo').value = p.hSeptimo;
-  ponerNumeroReferencia('p-h-asueto', p.hAsueto);
-  ponerNumeroReferencia('p-asueto-extra-diurna', p.hAsuetoExtraDiurna);
-  ponerNumeroReferencia('p-asueto-extra-nocturna', p.hAsuetoExtraNocturna);
-  ponerNumeroReferencia('p-h-permiso', p.hPermiso);
+  ponerHoraReferencia('p-h-septimo', p.hSeptimo);
+  ponerHoraReferencia('p-h-asueto', p.hAsueto);
+  ponerHoraReferencia('p-asueto-extra-diurna', p.hAsuetoExtraDiurna);
+  ponerHoraReferencia('p-asueto-extra-nocturna', p.hAsuetoExtraNocturna);
+  ponerHoraReferencia('p-h-permiso', p.hPermiso);
   ponerNumeroReferencia('p-dias-sin-permiso', p.diasSinPermiso);
   ponerNumeroReferencia('p-dias-incapacidad', p.diasIncapacidad);
   document.getElementById('p-aplicar-renta').checked = p.aplicarRenta;
