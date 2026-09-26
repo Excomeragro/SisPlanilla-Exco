@@ -3,7 +3,7 @@ const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
-const PAYROLL_CALC_VERSION = 6;
+const PAYROLL_CALC_VERSION = 7;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
   { key: 'lunes', label: 'Lunes' },
@@ -144,17 +144,31 @@ function normalizarEmpleado(e) {
     fechaSalida: e.fechaSalida || ''
   };
 }
+function corregirHoraTreinta(value) {
+  const horas = num(value);
+  return Math.abs(horas - 0.3) < 0.000001 ? 0.5 : horas;
+}
+function corregirHorasTreinta(horas) {
+  if (!horas || typeof horas !== 'object') return horas;
+  return Object.fromEntries(Object.entries(horas).map(([dia, valor]) => [dia, corregirHoraTreinta(valor)]));
+}
 function normalizarPlanilla(p) {
   const emp = p.empleadoSnapshot || {};
-  const extraDias = normalizarExtraDias(p.extraDias, p.extraDia || p.diaExtra, p.hExtra ?? p.hExtD);
-  const extraNocturnasDias = normalizarExtraDias(p.extraNocturnasDias);
+  const extraDias = normalizarExtraDias(corregirHorasTreinta(p.extraDias), p.extraDia || p.diaExtra, corregirHoraTreinta(p.hExtra ?? p.hExtD));
+  const extraNocturnasDias = normalizarExtraDias(corregirHorasTreinta(p.extraNocturnasDias));
+  const hOrdinarias = corregirHoraTreinta(p.hOrdinarias ?? p.hOrdD);
+  const hSeptimo = corregirHoraTreinta(p.hSeptimo ?? p.hDesc);
+  const hAsueto = corregirHoraTreinta(p.hAsueto);
+  const hAsuetoExtraDiurna = corregirHoraTreinta(p.hAsuetoExtraDiurna);
+  const hAsuetoExtraNocturna = corregirHoraTreinta(p.hAsuetoExtraNocturna);
+  const hPermiso = corregirHoraTreinta(p.hPermiso);
   const hExtra = totalHorasExtraLaboral(extraDias);
-  const hDomingo = num(p.hDomingo ?? extraDias.domingo);
+  const hDomingo = corregirHoraTreinta(p.hDomingo ?? extraDias.domingo);
   const hExtraNocturna = totalHorasExtraLaboral(extraNocturnasDias);
-  const hDomingoNocturno = num(p.hDomingoNocturno ?? extraNocturnasDias.domingo);
+  const hDomingoNocturno = corregirHoraTreinta(p.hDomingoNocturno ?? extraNocturnasDias.domingo);
   const aplicarIsss = p.aplicarIsss !== undefined ? p.aplicarIsss !== false : normalizarEmpleado(emp).descontarIsss;
   const aplicarAfp = p.aplicarAfp !== undefined ? p.aplicarAfp !== false : normalizarEmpleado(emp).descontarAfp;
-  const calc = p.calc?.version === PAYROLL_CALC_VERSION ? p.calc : calcularPago({ ...p, empleado: emp, extraDias, extraNocturnasDias, hExtra, hDomingo, hExtraNocturna, hDomingoNocturno, aplicarIsss, aplicarAfp });
+  const calc = p.calc?.version === PAYROLL_CALC_VERSION ? p.calc : calcularPago({ ...p, empleado: emp, hOrdinarias, hSeptimo, hAsueto, hAsuetoExtraDiurna, hAsuetoExtraNocturna, hPermiso, extraDias, extraNocturnasDias, hExtra, hDomingo, hExtraNocturna, hDomingoNocturno, aplicarIsss, aplicarAfp });
   return {
     id: p.id || uid(),
     empleadoId: p.empleadoId || emp.id || '',
@@ -162,7 +176,7 @@ function normalizarPlanilla(p) {
     fechaRegistro: p.fechaRegistro || todayIso(),
     fechaInicio: p.fechaInicio || p.fechaIni || '',
     fechaFin: p.fechaFin || '',
-    hOrdinarias: num(p.hOrdinarias ?? p.hOrdD),
+    hOrdinarias,
     extraDias,
     extraDia: resumenDiasExtra(extraDias) || p.extraDia || p.diaExtra || '',
     hExtra,
@@ -170,11 +184,11 @@ function normalizarPlanilla(p) {
     extraNocturnasDias,
     hExtraNocturna,
     hDomingoNocturno,
-    hSeptimo: num(p.hSeptimo ?? p.hDesc),
-    hAsueto: num(p.hAsueto),
-    hAsuetoExtraDiurna: num(p.hAsuetoExtraDiurna),
-    hAsuetoExtraNocturna: num(p.hAsuetoExtraNocturna),
-    hPermiso: num(p.hPermiso),
+    hSeptimo,
+    hAsueto,
+    hAsuetoExtraDiurna,
+    hAsuetoExtraNocturna,
+    hPermiso,
     diasSinPermiso: Math.max(0, Math.floor(num(p.diasSinPermiso))),
     diasIncapacidad: Math.max(0, Math.floor(num(p.diasIncapacidad))),
     otrosIngresos: num(p.otrosIngresos ?? p.otrosIng),
