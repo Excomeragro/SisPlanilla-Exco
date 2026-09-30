@@ -15,6 +15,8 @@ const EXTRA_DIAS = [
   { key: 'domingo', label: 'Descanso laborado' }
 ];
 let state = cargarEstado();
+let aproximarPagos = !!state.aproximarPagos;
+let boletasMostradas = [];
 let empleadoEditId = null;
 let planillaEditId = null;
 let ajustesPlanillaMasiva = {};
@@ -83,6 +85,37 @@ function validarHoraCampo(input) {
   return !invalido;
 }
 function money(v) { return '$' + num(v).toFixed(2); }
+function montoPagoVisible(valor) {
+  const centavos = Math.max(0, Math.round(num(valor) * 100));
+  if (!aproximarPagos) return centavos / 100;
+  const resto = centavos % 5;
+  const aproximado = resto <= 2 ? centavos - resto : centavos + (5 - resto);
+  return aproximado / 100;
+}
+function sincronizarControlAproximacion() {
+  document.querySelectorAll('#p-aproximar-pago, #b-aproximar-pago, #receipt-aproximar-pago').forEach(input => { input.checked = aproximarPagos; });
+}
+function renderBoletasMostradas() {
+  if (!boletasMostradas.length) return;
+  const copias = boletasMostradas.map(b => {
+    const data = b.data || state.planillas.find(p => p.id === b.planillaId);
+    return data ? generarCopiaBoleta(data, b) : generarCopiaBoleta(null, null, true);
+  });
+  if (copias.length % 2 !== 0) copias.push(generarCopiaBoleta(null, null, true));
+  document.getElementById('receipt-pages').innerHTML = copias.join('');
+}
+function cambiarAproximacionPago(activo) {
+  aproximarPagos = !!activo;
+  state.aproximarPagos = aproximarPagos;
+  sincronizarControlAproximacion();
+  guardarEstado(false);
+  renderPlanilla();
+  renderBoletasDisponibles();
+  renderBoletasGeneradas();
+  const detalle = document.getElementById('payroll-detail-overlay');
+  if (detalle?.dataset.reportType === 'cash' && detalle.classList.contains('open')) renderDesgloseEfectivo(planillasSemanaSeleccionada());
+  if (document.getElementById('receipt-overlay')?.classList.contains('open')) renderBoletasMostradas();
+}
 function iso(d) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -91,7 +124,7 @@ function iso(d) {
 }
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [] }; }
+function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false }; }
 function normalizarEstado(raw) {
   const base = estadoVacio();
   if (Array.isArray(raw)) raw = { planillas: raw };
@@ -101,6 +134,7 @@ function normalizarEstado(raw) {
   base.historialPagos = (raw.historialPagos || []).map(normalizarPago);
   base.boletas = (raw.boletas || []).map(b => ({ ...b, id: b.id || uid() }));
   base.ajustesPlanillaMasiva = raw.ajustesPlanillaMasiva && typeof raw.ajustesPlanillaMasiva === 'object' ? raw.ajustesPlanillaMasiva : {};
+  base.aproximarPagos = !!raw.aproximarPagos;
   const migrados = base.planillas.map(p => p.empleadoSnapshot).filter(e => e && e.nombre);
   migrados.forEach(e => {
     if (!base.empleados.some(x => x.id === e.id || x.nombre.toLowerCase() === e.nombre.toLowerCase())) base.empleados.push(normalizarEmpleado(e));
@@ -1329,7 +1363,7 @@ function calcularPreviewPlanilla() {
   document.getElementById('p-asistencia-resultado').value = `Ordinarias: ${calc.horasOrdinariasPagadas.toFixed(2)} h · Incapacidad: ${calc.horasIncapacidadPagadas.toFixed(2)} h · Séptimo: ${calc.horasSeptimoPagadas.toFixed(2)} h`;
   document.getElementById('p-prev-devengado').textContent = money(calc.devengado);
   document.getElementById('p-prev-descuentos').textContent = money(calc.descuentos);
-  document.getElementById('p-prev-neto').textContent = money(calc.neto);
+  document.getElementById('p-prev-neto').textContent = money(montoPagoVisible(calc.neto));
   document.getElementById('p-prev-afp-inst').textContent = d.empleado?.descontarAfp === false ? 'No aplica' : (d.empleado?.afpInstitucion || '-');
   actualizarColoresPlanilla(d, calc);
   return calc;
@@ -1917,7 +1951,7 @@ function renderDesgloseEfectivo(planillas) {
   const totales = Object.fromEntries(DENOMINACIONES_EFECTIVO.map(d => [d.centavos, 0]));
   let totalCentavos = 0;
   planillas.forEach(p => {
-    const netoCentavos = Math.max(0, Math.round(num(p.calc?.neto) * 100));
+    const netoCentavos = Math.round(montoPagoVisible(p.calc?.neto) * 100);
     const desglosePersonal = desglosarEfectivo(netoCentavos / 100);
     totalCentavos += netoCentavos;
     DENOMINACIONES_EFECTIVO.forEach(d => { totales[d.centavos] += desglosePersonal[d.centavos]; });
@@ -2035,6 +2069,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
   const texto = value => vacia ? espacio : esc(value || '');
   const dinero = value => vacia ? espacio : money(value);
   const cantidad = value => vacia ? espacio : num(value).toFixed(2);
+  const netoPago = vacia ? 0 : montoPagoVisible(c.neto);
   const otrosLabel = !vacia && emp.descuentoConcepto === 'Casa' ? 'Casa:' : 'Otros:';
   const fechaCorta = fecha => {
     if (vacia || !fecha) return '';
@@ -2089,7 +2124,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
           <div class="receipt-employee-row">
             <div class="receipt-employee-main"><strong>${texto(emp.nombre)}</strong><div>${texto((emp.cargo || emp.departamento || '').toUpperCase())}</div></div>
             <div class="receipt-pay-type"><span>Tipo de pago:</span><strong>${texto(emp.tipoPago || 'Semanal')}</strong></div>
-            <div class="receipt-amount-box"><span>POR:</span><strong>${dinero(c.neto)}</strong></div>
+            <div class="receipt-amount-box"><span>POR:</span><strong>${dinero(netoPago)}</strong></div>
           </div>
           <div class="receipt-columns">
             <div class="receipt-income-col">
@@ -2125,7 +2160,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${deductionLine('Prest.:', c.prestamos)}
               </div>
               <div class="paper-line simple deduction-line descuentos-row"><span class="label">TOTAL DESCUENTOS</span><strong class="amount">${dinero(c.descuentos)}</strong></div>
-              <div class="receipt-signoff"><div><strong>Recibí conforme&nbsp;&nbsp;&nbsp; ${dinero(c.neto)}</strong></div><div class="receipt-sign-line"></div></div>
+              <div class="receipt-signoff"><div><strong>Recibí conforme&nbsp;&nbsp;&nbsp; ${dinero(netoPago)}</strong></div><div class="receipt-sign-line"></div></div>
             </div>
           </div>
         </div>
@@ -2133,6 +2168,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
     </section>`;
 }
 function mostrarBoletas(boletas) {
+  boletasMostradas = boletas.slice();
   const copias = boletas.map(b => {
     const data = b.data || state.planillas.find(p => p.id === b.planillaId);
     return data ? generarCopiaBoleta(data, b) : generarCopiaBoleta(null, null, true);
@@ -2140,6 +2176,7 @@ function mostrarBoletas(boletas) {
   if (copias.length % 2 !== 0) copias.push(generarCopiaBoleta(null, null, true));
   document.getElementById('receipt-pages').innerHTML = copias.join('');
   document.getElementById('rec-footer').textContent = copias.length + ' comprobante' + (copias.length === 1 ? '' : 's') + ' · SisPlanilla Exco';
+  sincronizarControlAproximacion();
   document.getElementById('receipt-overlay').classList.add('open');
 }
 function mostrarBoleta(p, boleta) {
@@ -2177,7 +2214,7 @@ function renderStats() {
   const activos = empleadosActivos().length;
   const inactivos = state.empleados.filter(e => e.estado === 'inactivo').length;
   const planillasSemana = state.planillas.filter(planillaVigente);
-  const netoSemana = planillasSemana.reduce((s, p) => s + num(p.calc?.neto), 0);
+  const netoSemana = planillasSemana.reduce((s, p) => s + montoPagoVisible(p.calc?.neto), 0);
   document.getElementById('stat-activos').textContent = activos;
   document.getElementById('stat-inactivos').textContent = inactivos;
   document.getElementById('stat-pagos').textContent = planillasSemana.length;
@@ -2272,13 +2309,13 @@ function renderPlanilla() {
   if (!planillas.length) { tbody.innerHTML = `<tr><td colspan="11"><div class="table-empty">${busqueda ? 'No se encontraron empleados.' : 'No hay registros de planilla para esta semana.'}</div></td></tr>`; tfoot.innerHTML = ''; return; }
   let dev = 0, desc = 0, net = 0;
   tbody.innerHTML = planillas.map((p, i) => {
-    dev += p.calc.devengado; desc += p.calc.descuentos; net += p.calc.neto;
+    dev += p.calc.devengado; desc += p.calc.descuentos; net += montoPagoVisible(p.calc.neto);
     return `<tr class="${clasesNombrePlanilla(p)}">
       <td>${i + 1}</td>
       <td><div class="col-name">${esc(p.empleadoSnapshot.nombre)}</div><div class="col-sub">${esc(p.empleadoSnapshot.cargo)} · ${esc(p.empleadoSnapshot.departamento)}</div></td>
       <td>${esc(periodoTexto(p))}</td>
       <td>${num(p.calc?.horasOrdinariasPagadas ?? p.hOrdinarias).toFixed(2)}${num(p.hPermiso) > 0 || num(p.diasSinPermiso) > 0 || num(p.diasIncapacidad) > 0 ? `<div class="col-sub">Perm. ${num(p.hPermiso).toFixed(1)}h · Faltas ${num(p.diasSinPermiso).toFixed(0)}d · Incap. ${num(p.diasIncapacidad).toFixed(0)}d</div>` : ''}</td><td>${num(p.hExtra + num(p.hExtraNocturna)).toFixed(2)}</td><td>${esc([resumenDiasExtra(p.extraDias) ? 'D: ' + resumenDiasExtra(p.extraDias) : '', resumenDiasExtra(p.extraNocturnasDias) ? 'N: ' + resumenDiasExtra(p.extraNocturnasDias) : ''].filter(Boolean).join(' · ') || '-')}</td>
-      <td class="col-money">${money(p.calc.devengado)}</td><td class="col-discount">${money(p.calc.descuentos)}</td><td class="col-net">${money(p.calc.neto)}</td>
+      <td class="col-money">${money(p.calc.devengado)}</td><td class="col-discount">${money(p.calc.descuentos)}</td><td class="col-net">${money(montoPagoVisible(p.calc.neto))}</td>
       <td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="generarBoletaDesdePlanilla('${p.id}')">Ver boleta</button></td>
       <td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarPlanilla('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarPlanilla('${p.id}')">Quitar</button></td>
     </tr>`;
@@ -2299,12 +2336,12 @@ function renderHistorial() {
   const tfoot = document.getElementById('historial-tfoot');
   if (!pagos.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="table-empty">Sin pagos históricos para este empleado.</div></td></tr>'; tfoot.innerHTML = ''; return; }
   let dev = 0, net = 0;
-  tbody.innerHTML = pagos.map(p => { dev += p.devengado; net += p.neto; return `<tr><td class="select-cell"><input type="checkbox" class="historial-check" value="${esc(p.id)}"></td><td>${esc(p.fecha)}</td><td>${esc(p.periodo)}</td><td>${money(p.devengado)}</td><td>${money(p.isss)}</td><td>${money(p.afp)}</td><td>${money(p.renta)}</td><td>${money(p.otrosDescuentos)}</td><td class="col-net">${money(p.neto)}</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarPagoHistorial('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarPagoHistorial('${p.id}')">Borrar</button></td></tr>`; }).join('');
+  tbody.innerHTML = pagos.map(p => { dev += p.devengado; net += montoPagoVisible(p.neto); return `<tr><td class="select-cell"><input type="checkbox" class="historial-check" value="${esc(p.id)}"></td><td>${esc(p.fecha)}</td><td>${esc(p.periodo)}</td><td>${money(p.devengado)}</td><td>${money(p.isss)}</td><td>${money(p.afp)}</td><td>${money(p.renta)}</td><td>${money(p.otrosDescuentos)}</td><td class="col-net">${money(montoPagoVisible(p.neto))}</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarPagoHistorial('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarPagoHistorial('${p.id}')">Borrar</button></td></tr>`; }).join('');
   tfoot.innerHTML = `<tr><td colspan="3">TOTALES</td><td>${money(dev)}</td><td colspan="4"></td><td class="col-net">${money(net)}</td><td></td></tr>`;
 }
 function renderBoletasDisponibles() {
   const empId = document.getElementById('b-empleado').value;
-  const opciones = state.planillas.filter(p => p.empleadoId === empId && planillaVigente(p)).map(p => `<option value="${p.id}">${esc(periodoTexto(p))} · ${money(p.calc.neto)}${p.boletaGenerada ? ' · ya generada' : ''}</option>`).join('');
+  const opciones = state.planillas.filter(p => p.empleadoId === empId && planillaVigente(p)).map(p => `<option value="${p.id}">${esc(periodoTexto(p))} · ${money(montoPagoVisible(p.calc.neto))}${p.boletaGenerada ? ' · ya generada' : ''}</option>`).join('');
   document.getElementById('b-planilla').innerHTML = opciones || '<option value="">Sin planillas disponibles</option>';
 }
 function renderBoletasGeneradas() {
@@ -2314,7 +2351,7 @@ function renderBoletasGeneradas() {
   if (selectAll) selectAll.checked = false;
   const tbody = document.getElementById('boletas-tbody');
   if (!visibles.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="table-empty">No hay boletas vigentes para imprimir esta semana.</div></td></tr>'; return; }
-  tbody.innerHTML = visibles.slice().reverse().map(b => `<tr><td class="select-cell"><input type="checkbox" class="boleta-check" value="${esc(b.id)}"></td><td>${esc(b.fecha)}</td><td>${esc(b.empleado)}</td><td>${esc(b.periodo)}</td><td>${money(b.devengado)}</td><td class="col-discount">${money(b.descuentos)}</td><td class="col-net">${money(b.neto)}</td><td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="abrirBoleta('${b.id}')">Ver / Imprimir</button><button class="btn btn-amber btn-sm" onclick="editarBoleta('${b.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarBoleta('${b.id}')">Borrar</button></td></tr>`).join('');
+  tbody.innerHTML = visibles.slice().reverse().map(b => `<tr><td class="select-cell"><input type="checkbox" class="boleta-check" value="${esc(b.id)}"></td><td>${esc(b.fecha)}</td><td>${esc(b.empleado)}</td><td>${esc(b.periodo)}</td><td>${money(b.devengado)}</td><td class="col-discount">${money(b.descuentos)}</td><td class="col-net">${money(montoPagoVisible(b.neto))}</td><td class="actions-cell"><button class="btn btn-primary btn-sm" onclick="abrirBoleta('${b.id}')">Ver / Imprimir</button><button class="btn btn-amber btn-sm" onclick="editarBoleta('${b.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarBoleta('${b.id}')">Borrar</button></td></tr>`).join('');
 }
 function setSemanaActual() {
   const monday = lunesDeFecha(todayIso());
@@ -2626,5 +2663,6 @@ setSemanaActual();
 setSemanaMasivaActual();
 toggleFechaSalida();
 renderGananciasMenusuales();
+sincronizarControlAproximacion();
 guardarEstado(false);
 inicializarSupabase();

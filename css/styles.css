@@ -742,6 +742,8 @@
   .receipt-sign-line { border-bottom: 2px solid #111; height: 38px; }
   .receipt-footer { display: none; }
   .receipt-actions { display:flex; gap:8px; padding: 0 24px 20px; justify-content:flex-end; align-items:center; }
+  .payment-rounding-toggle { display:flex; align-items:center; gap:6px; margin-left:auto; color:#475569; font-size:11px; font-weight:700; white-space:nowrap; }
+  .payment-rounding-toggle input { accent-color:#2563EB; }
   #toast {
     position: fixed;
     right: 24px;

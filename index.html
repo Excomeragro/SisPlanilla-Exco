@@ -244,7 +244,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-primary btn-sm" onclick="abrirDesgloseEfectivo()">Desglose de efectivo</button><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><span class="badge badge-green" id="planilla-count">0 registros</span></div>
+        <div class="card-header"><h2>Planilla actual</h2><button class="btn btn-primary btn-sm" onclick="abrirDesgloseEfectivo()">Desglose de efectivo</button><button class="btn btn-success btn-sm" onclick="abrirDetallePlanilla()">Detalle por área</button><label class="payment-rounding-toggle"><input type="checkbox" id="p-aproximar-pago" onchange="cambiarAproximacionPago(this.checked)"> Aproximar pagos a $0.05</label><span class="badge badge-green" id="planilla-count">0 registros</span></div>
         <div class="table-tools"><div class="form-group"><label for="planilla-search">Buscar empleado</label><input type="search" id="planilla-search" placeholder="Nombre o DUI" autocomplete="off" oninput="renderPlanilla()"></div></div>
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Semana</th><th>Ord.</th><th>Extra L-S</th><th>Días extra</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Boleta</th><th>Acciones</th></tr></thead><tbody id="planilla-tbody"></tbody><tfoot id="planilla-tfoot"></tfoot></table></div>
       </div>
@@ -365,7 +365,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>Boletas generadas</h2><button class="btn btn-success btn-sm" onclick="imprimirBoletasSeleccionadas()">Imprimir seleccionadas</button><span class="badge badge-green" id="boletas-count">0 boletas</span></div>
+        <div class="card-header"><h2>Boletas generadas</h2><button class="btn btn-success btn-sm" onclick="imprimirBoletasSeleccionadas()">Imprimir seleccionadas</button><label class="payment-rounding-toggle"><input type="checkbox" id="b-aproximar-pago" onchange="cambiarAproximacionPago(this.checked)"> Aproximar pagos</label><span class="badge badge-green" id="boletas-count">0 boletas</span></div>
         <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="boletas-select-all" onchange="toggleBoletasSeleccionadas(this.checked)"></th><th>Fecha</th><th>Empleado</th><th>Período</th><th>Devengado</th><th>Descuentos</th><th>Neto</th><th>Acciones</th></tr></thead><tbody id="boletas-tbody"></tbody></table></div>
       </div>
     </section>
@@ -490,7 +490,7 @@
       <div class="receipt-signoff"><div style="text-align:right;">Recibí conforme&nbsp;&nbsp;&nbsp; <strong id="rec-neto"></strong></div><div class="receipt-sign-line"></div></div>
     </div>
     <div class="receipt-footer" id="rec-footer">Documento generado por SisPlanilla Exco</div>
-    <div class="receipt-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarRecibo()">Cerrar</button><button class="btn btn-primary btn-sm" onclick="imprimirRecibo()">Imprimir</button></div>
+    <div class="receipt-actions"><label class="payment-rounding-toggle"><input type="checkbox" id="receipt-aproximar-pago" onchange="cambiarAproximacionPago(this.checked)"> Aproximar pagos a $0.05</label><button class="btn btn-ghost btn-sm" onclick="cerrarRecibo()">Cerrar</button><button class="btn btn-primary btn-sm" onclick="imprimirRecibo()">Imprimir</button></div>
   </div>
 </div>
 <div id="toast">Listo</div>
