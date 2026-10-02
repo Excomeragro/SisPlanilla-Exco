@@ -3,7 +3,7 @@ const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
-const PAYROLL_CALC_VERSION = 7;
+const PAYROLL_CALC_VERSION = 8;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
   { key: 'lunes', label: 'Lunes' },
@@ -723,6 +723,29 @@ function pagoProporcionalSalida(emp) {
 function sugerirRenta(devengado) {
   return red(num(devengado) * 0.10);
 }
+function calcularIngresoAdicionalBruto(ingresoNeto, devengadoBase, aplicarIsss, aplicarAfp) {
+  const objetivoCentavos = Math.max(0, Math.round(num(ingresoNeto) * 100));
+  if (!objetivoCentavos) return 0;
+  const tasaTotal = (aplicarIsss ? 0.03 : 0) + (aplicarAfp ? 0.0725 : 0);
+  if (!tasaTotal) return objetivoCentavos / 100;
+  const baseCentavos = Math.max(0, Math.round(num(devengadoBase) * 100));
+  const isssBase = aplicarIsss ? Math.round(baseCentavos * 0.03) : 0;
+  const afpBase = aplicarAfp ? Math.round(baseCentavos * 0.0725) : 0;
+  const netoBase = baseCentavos - isssBase - afpBase;
+  const estimado = Math.max(objetivoCentavos, Math.round(objetivoCentavos / (1 - tasaTotal)));
+  let mejorCentavos = estimado;
+  let menorDiferencia = Infinity;
+  for (let brutoCentavos = Math.max(0, estimado - 3); brutoCentavos <= estimado + 3; brutoCentavos++) {
+    const isss = aplicarIsss ? Math.round((baseCentavos + brutoCentavos) * 0.03) : 0;
+    const afp = aplicarAfp ? Math.round((baseCentavos + brutoCentavos) * 0.0725) : 0;
+    const diferencia = Math.abs((baseCentavos + brutoCentavos - isss - afp - netoBase) - objetivoCentavos);
+    if (diferencia < menorDiferencia || (diferencia === menorDiferencia && brutoCentavos < mejorCentavos)) {
+      mejorCentavos = brutoCentavos;
+      menorDiferencia = diferencia;
+    }
+  }
+  return mejorCentavos / 100;
+}
 function calcularPago(d) {
   const salario = num(d.empleado?.salarioHoraCalculo ?? d.empleado?.salarioHora ?? d.salarioHora);
   const horasPermiso = Math.max(0, num(d.hPermiso));
@@ -748,11 +771,13 @@ function calcularPago(d) {
   const asueto = num(d.hAsueto) * salario;
   const asuetoExtraDiurna = num(d.hAsuetoExtraDiurna) * salario * 3;
   const asuetoExtraNocturna = num(d.hAsuetoExtraNocturna) * salario * 3.25;
-  const otrosIngresos = num(d.otrosIngresos);
-  const devengado = ord + incapacidad + extra + extraNocturna + domingo + domingoNocturno + septimo + asueto + asuetoExtraDiurna + asuetoExtraNocturna + otrosIngresos;
   const aplicarIsss = d.aplicarIsss !== undefined ? !!d.aplicarIsss : d.empleado?.descontarIsss !== false;
   const aplicarAfp = d.aplicarAfp !== undefined ? !!d.aplicarAfp : d.empleado?.descontarAfp !== false;
   const aplicarRenta = d.aplicarRenta !== undefined ? !!d.aplicarRenta : !!d.empleado?.aplicarRenta;
+  const ingresoAdicionalNeto = Math.max(0, num(d.otrosIngresos));
+  const devengadoBase = ord + incapacidad + extra + extraNocturna + domingo + domingoNocturno + septimo + asueto + asuetoExtraDiurna + asuetoExtraNocturna;
+  const otrosIngresos = calcularIngresoAdicionalBruto(ingresoAdicionalNeto, devengadoBase, aplicarIsss, aplicarAfp);
+  const devengado = devengadoBase + otrosIngresos;
   const isss = aplicarIsss ? red(devengado * 0.03) : 0;
   const afp = aplicarAfp ? red(devengado * 0.0725) : 0;
   const rentaSugerida = sugerirRenta(devengado);
@@ -767,7 +792,7 @@ function calcularPago(d) {
     descuentoAusencia: red(Math.min(Math.max(0, num(d.hOrdinarias) - horasPermiso), horasAusencia) * salario),
     descuentoSeptimo: red((num(d.hSeptimo) - horasSeptimoPagadas) * salario),
     ord: red(ord), incapacidad: red(incapacidad), extra: red(extra), extraNocturna: red(extraNocturna), domingo: red(domingo), domingoNocturno: red(domingoNocturno),
-    septimo: red(septimo), asueto: red(asueto), asuetoExtraDiurna: red(asuetoExtraDiurna), asuetoExtraNocturna: red(asuetoExtraNocturna), otrosIngresos: red(otrosIngresos),
+    septimo: red(septimo), asueto: red(asueto), asuetoExtraDiurna: red(asuetoExtraDiurna), asuetoExtraNocturna: red(asuetoExtraNocturna), otrosIngresos: red(otrosIngresos), otrosIngresosNeto: red(ingresoAdicionalNeto),
     devengado: red(devengado), isss, afp, rentaSugerida: red(rentaSugerida), renta,
     prestamos, otrosDescuentos, descuentos: red(descuentos), neto: red(devengado - descuentos)
   };
@@ -2137,7 +2162,7 @@ function generarCopiaBoleta(p, boleta, vacia = false) {
                 ${line('H. Extr. Nocturnas:', p?.hExtraNocturna, c.extraNocturna)}
                 ${line('H. Desc./Sept:', c.horasSeptimoPagadas ?? p?.hSeptimo, c.septimo)}
                 ${line('H. Asueto:', p?.hAsueto, c.asueto)}
-                ${simple('Bono adicional:', c.otrosIngresos)}
+                ${simple('Bono adicional bruto:', c.otrosIngresos)}
                 ${line('H. Ext. Asueto D.:', p?.hAsuetoExtraDiurna, c.asuetoExtraDiurna)}
                 ${line('H. Ext. Asueto N.:', p?.hAsuetoExtraNocturna, c.asuetoExtraNocturna)}
                 ${asistenciaNota}

@@ -194,7 +194,7 @@
               <div class="form-group"><label>Cargo</label><input type="text" id="p-cargo" readonly></div>
               <div class="form-group"><label>Departamento / area</label><input type="text" id="p-departamento" readonly></div>
               <div class="form-group"><label>Salario por hora</label><input type="number" id="p-salario-hora" readonly></div>
-              <div class="form-group"><label>Ingreso adicional fijo semanal ($)</label><input type="number" id="p-ingreso-fijo" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
+              <div class="form-group"><label>Ingreso adicional fijo semanal neto ($)</label><input type="number" id="p-ingreso-fijo" step="0.01" min="0" value="" placeholder="0" oninput="calcularPreviewPlanilla()"></div>
               <div class="form-group span2"><label>Pago de última semana</label><input type="text" id="p-salida-info" readonly placeholder="Semana completa"></div>
               <div class="form-divider">Ingresos</div>
               <div class="form-group"><label>Horas ordinarias</label><input type="number" id="p-h-ordinarias" step="0.5" min="0" value="44" oninput="calcularPreviewPlanilla()"></div>
@@ -272,7 +272,7 @@
               <div class="form-group span2"><label>Descuentos del empleado</label><div class="check-grid"><label><input type="checkbox" id="e-desc-isss" checked> ISSS</label><label><input type="checkbox" id="e-desc-afp" checked> AFP</label><label><input type="checkbox" id="e-desc-renta"> Renta</label></div></div>
               <div class="form-group"><label>Tipo de descuento</label><select id="e-descuento-concepto"><option value="">Ninguno</option><option value="Prestamo">Préstamo</option><option value="Casa">Casa</option><option value="Otro">Otro</option></select></div>
               <div class="form-group"><label>Descuento semanal ($)</label><input class="zero-ref" type="number" id="e-descuento-fijo" step="0.01" min="0" value="" placeholder="0"></div>
-              <div class="form-group"><label>Ingreso adicional fijo semanal ($)</label><input class="zero-ref" type="number" id="e-ingreso-fijo" step="0.01" min="0" value="" placeholder="0"></div>
+              <div class="form-group"><label>Ingreso adicional fijo semanal neto ($)</label><input class="zero-ref" type="number" id="e-ingreso-fijo" step="0.01" min="0" value="" placeholder="0"></div>
               <div class="form-group"><label>Estado</label><select id="e-estado" onchange="toggleFechaSalida()"><option value="activo">🟢 Activo</option><option value="inactivo">🔴 Inactivo</option></select></div>
               <div class="form-group"><label>Primer día que ya no asistió</label><input type="date" id="e-fecha-salida"></div>
               <div class="form-divider">Contacto de emergencia</div>
