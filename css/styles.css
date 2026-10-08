@@ -299,6 +299,9 @@
   .github-tools p { margin:0; color:var(--muted); font-size:12px; flex:1; min-width:240px; }
   .mass-quick-search { min-width: 190px; margin: 0; }
   .mass-quick-search input { height: 34px; }
+  .mass-quick-controls { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; }
+  .mass-quick-controls .inline-check { padding-top:0; white-space:nowrap; }
+  .attendance-order-input { width: 68px; min-width: 68px; height: 30px; padding: 4px 6px; text-align:center; font-weight:700; }
   .mass-quick-wrap { max-height: 520px; overflow: auto; border-top: 1px solid var(--border); }
   .mass-quick-table {
     min-width: 1040px;

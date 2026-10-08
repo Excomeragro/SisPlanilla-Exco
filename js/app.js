@@ -124,7 +124,7 @@ function iso(d) {
 }
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false }; }
+function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false, usarOrdenAsistencia: false }; }
 function normalizarEstado(raw) {
   const base = estadoVacio();
   if (Array.isArray(raw)) raw = { planillas: raw };
@@ -135,6 +135,7 @@ function normalizarEstado(raw) {
   base.boletas = (raw.boletas || []).map(b => ({ ...b, id: b.id || uid() }));
   base.ajustesPlanillaMasiva = raw.ajustesPlanillaMasiva && typeof raw.ajustesPlanillaMasiva === 'object' ? raw.ajustesPlanillaMasiva : {};
   base.aproximarPagos = !!raw.aproximarPagos;
+  base.usarOrdenAsistencia = !!raw.usarOrdenAsistencia;
   const migrados = base.planillas.map(p => p.empleadoSnapshot).filter(e => e && e.nombre);
   migrados.forEach(e => {
     if (!base.empleados.some(x => x.id === e.id || x.nombre.toLowerCase() === e.nombre.toLowerCase())) base.empleados.push(normalizarEmpleado(e));
@@ -159,6 +160,7 @@ function normalizarEmpleado(e) {
     telefono: (e.telefono || '').trim(),
     direccion: (e.direccion || '').trim(),
     fechaIngreso: e.fechaIngreso || e.fechaIni || '',
+    ordenAsistencia: Math.max(0, Math.floor(num(e.ordenAsistencia))),
     cargo: (e.cargo || '').trim(),
     departamento: (e.departamento || e.area || e.planillaDep || '').trim(),
     salarioHora: esJorgeUlisesEscobar ? 1.68 : salarioRegistrado,
@@ -646,6 +648,16 @@ function importarJSON() {
 function ordenarPorNombre(empleados) {
   return [...empleados].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
 }
+function ordenarPorAsistencia(empleados) {
+  return [...empleados].sort((a, b) => {
+    const ordenA = Math.max(0, Math.floor(num(a.ordenAsistencia)));
+    const ordenB = Math.max(0, Math.floor(num(b.ordenAsistencia)));
+    if (ordenA && ordenB && ordenA !== ordenB) return ordenA - ordenB;
+    if (ordenA && !ordenB) return -1;
+    if (!ordenA && ordenB) return 1;
+    return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+  });
+}
 function empleadosActivos() { return ordenarPorNombre(state.empleados.filter(e => e.estado === 'activo')); }
 function empleadoPorId(id) { return state.empleados.find(e => e.id === id); }
 function textoNormalizado(s) { return String(s || '').trim().toLowerCase(); }
@@ -997,7 +1009,18 @@ function empleadoAplicaSemanaMasiva(emp) {
   return !!(emp.fechaSalida && inicio && fechaLocal(emp.fechaSalida) >= fechaLocal(inicio));
 }
 function empleadosPlanillaMasiva() {
-  return ordenarPorNombre(state.empleados.filter(empleadoAplicaSemanaMasiva));
+  const empleados = state.empleados.filter(empleadoAplicaSemanaMasiva);
+  return state.usarOrdenAsistencia ? ordenarPorAsistencia(empleados) : ordenarPorNombre(empleados);
+}
+function cambiarOrdenAsistencia(activo) {
+  state.usarOrdenAsistencia = !!activo;
+  guardarEstado(false);
+}
+function actualizarOrdenAsistencia(id, valor) {
+  const emp = empleadoPorId(id);
+  if (!emp) return;
+  emp.ordenAsistencia = Math.max(0, Math.floor(num(valor)));
+  guardarEstado(false);
 }
 function guardarPreferenciasExtrasFrecuentes() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
@@ -1269,8 +1292,10 @@ function renderPlanillaMasivaRapida() {
   if (!tbody) return;
   const busqueda = textoNormalizado(document.getElementById('m-rapida-buscar')?.value);
   const empleados = empleadosPlanillaMasiva()
-    .filter(emp => !busqueda || textoNormalizado(emp.nombre).includes(busqueda) || textoNormalizado(emp.dui).includes(busqueda))
-    .sort((a, b) => Number(tieneValoresAjusteMasivo(ajustesPlanillaMasiva[b.id])) - Number(tieneValoresAjusteMasivo(ajustesPlanillaMasiva[a.id])) || a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+    .filter(emp => !busqueda || textoNormalizado(emp.nombre).includes(busqueda) || textoNormalizado(emp.dui).includes(busqueda));
+  if (!state.usarOrdenAsistencia) {
+    empleados.sort((a, b) => Number(tieneValoresAjusteMasivo(ajustesPlanillaMasiva[b.id])) - Number(tieneValoresAjusteMasivo(ajustesPlanillaMasiva[a.id])) || a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+  }
   const { inicio, fin } = semanaMasivaActual();
   if (!empleados.length) {
     tbody.innerHTML = '<tr><td colspan="18"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
@@ -1327,6 +1352,8 @@ function clasificarCamposMasivos() {
 }
 function renderPlanillaMasiva() {
   const empleados = empleadosPlanillaMasiva();
+  const ordenAsistencia = document.getElementById('m-usar-orden-asistencia');
+  if (ordenAsistencia) ordenAsistencia.checked = !!state.usarOrdenAsistencia;
   document.getElementById('m-empleados-lista').innerHTML = empleados.map(e => `<option value="${esc(e.nombre)}">${ajustesPlanillaMasiva[e.id] ? 'Seleccionado - ' : ''}${esc(e.departamento)} - ${esc(e.cargo)}</option>`).join('');
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
@@ -1715,6 +1742,7 @@ function leerEmpleadoForm() {
     telefono: document.getElementById('e-telefono').value,
     direccion: document.getElementById('e-direccion').value,
     fechaIngreso: document.getElementById('e-fecha-ingreso').value,
+    ordenAsistencia: document.getElementById('e-orden-asistencia').value,
     cargo: document.getElementById('e-cargo').value,
     departamento: document.getElementById('e-departamento').value,
     salarioHora: document.getElementById('e-salario-hora').value,
@@ -1761,6 +1789,7 @@ function editarEmpleado(id) {
   document.getElementById('e-telefono').value = e.telefono;
   document.getElementById('e-direccion').value = e.direccion;
   document.getElementById('e-fecha-ingreso').value = e.fechaIngreso;
+  document.getElementById('e-orden-asistencia').value = num(e.ordenAsistencia) > 0 ? e.ordenAsistencia : '';
   document.getElementById('e-cargo').value = e.cargo;
   document.getElementById('e-departamento').value = e.departamento;
   document.getElementById('e-salario-hora').value = e.salarioHora;
@@ -1796,6 +1825,7 @@ function limpiarEmpleadoForm(reset = true) {
   document.getElementById('e-descuento-concepto').value = '';
   document.getElementById('e-descuento-fijo').value = '';
   document.getElementById('e-ingreso-fijo').value = '';
+  document.getElementById('e-orden-asistencia').value = '';
   document.getElementById('empleado-form-title').textContent = 'Registro completo de empleado';
   document.getElementById('empleado-mode').textContent = 'Nuevo';
   document.getElementById('empleado-mode').className = 'badge badge-blue';
@@ -2296,14 +2326,15 @@ function renderEmpleados() {
       note.parentNode.removeChild(note);
     }
   }
-  if (!state.empleados.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="table-empty">No hay empleados registrados.</div></td></tr>'; return; }
-  if (!empleadosFiltrados.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="table-empty">No se encontraron empleados con esa búsqueda.</div></td></tr>'; return; }
+  if (!state.empleados.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="table-empty">No hay empleados registrados.</div></td></tr>'; return; }
+  if (!empleadosFiltrados.length) { tbody.innerHTML = '<tr><td colspan="11"><div class="table-empty">No se encontraron empleados con esa búsqueda.</div></td></tr>'; return; }
   tbody.innerHTML = empleadosFiltrados.map((e, i) => `
     <tr>
       <td>${i + 1}</td>
       <td><div class="col-name">${esc(e.nombre)}</div><div class="col-sub">DUI: ${esc(e.dui || '—')}</div></td>
       <td><div>${esc(e.telefono || '—')}</div><div class="col-sub">${esc(e.contactoNombre || '')}</div></td>
       <td>${esc(e.fechaIngreso || '—')}</td>
+      <td><input class="attendance-order-input" type="number" min="1" step="1" value="${num(e.ordenAsistencia) > 0 ? e.ordenAsistencia : ''}" placeholder="—" onchange="actualizarOrdenAsistencia('${e.id}', this.value)"></td>
       <td>${esc(e.cargo)}</td>
       <td>${esc(e.departamento)}</td>
       <td><div>${money(e.salarioHora)}</div>${num(e.ingresoFijo) > 0 ? `<div class="col-sub">+${money(e.ingresoFijo)} fijo</div>` : ''}</td>

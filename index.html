@@ -152,7 +152,7 @@
               <h3>Carga rapida de horas</h3>
               <p>1. Escribe horas solo donde aplique. 2. Pulsa Crear planillas de todos. 3. Pulsa Crear boletas de la semana.</p>
             </div>
-            <div class="form-group mass-quick-search"><label>Buscar</label><input type="search" id="m-rapida-buscar" placeholder="Nombre o DUI" oninput="filtrarPlanillaMasivaRapida()"></div>
+            <div class="mass-quick-controls"><label class="inline-check"><input type="checkbox" id="m-usar-orden-asistencia" onchange="cambiarOrdenAsistencia(this.checked)"> Usar orden de asistencia</label><div class="form-group mass-quick-search"><label>Buscar</label><input type="search" id="m-rapida-buscar" placeholder="Nombre o DUI" oninput="filtrarPlanillaMasivaRapida()"></div></div>
           </div>
           <div class="mass-color-legend"><span class="legend-extra-diurna">Extra diurna</span><span class="legend-extra-nocturna">Extra nocturna</span><span class="legend-asueto">Asueto</span><span class="legend-domingo">Domingo</span><span class="legend-descuento">Permiso / falta / descuento</span></div>
           <div class="table-wrap mass-quick-wrap">
@@ -263,6 +263,7 @@
               <div class="form-group"><label>Teléfono</label><input type="text" id="e-telefono"></div>
               <div class="form-group full"><label>Dirección</label><textarea id="e-direccion"></textarea></div>
               <div class="form-group"><label>Fecha de ingreso *</label><input type="date" id="e-fecha-ingreso"></div>
+              <div class="form-group"><label>Orden de asistencia</label><input type="number" id="e-orden-asistencia" min="1" step="1" placeholder="Ej. 1"></div>
               <div class="form-divider">Información laboral</div>
               <div class="form-group"><label>Cargo *</label><select id="e-cargo"><option value="">Seleccionar</option><option>Operario</option><option>Empacador</option><option>Descarga</option><option>Mantenimiento</option></select></div>
               <div class="form-group"><label>Departamento / area *</label><select id="e-departamento"><option value="">Seleccionar</option><option>Empaque</option><option>Carga y descarga</option><option>Trabajos varios</option><option>Otros</option></select></div>
@@ -292,7 +293,7 @@
             <label class="inline-check"><input type="checkbox" id="empleados-contraido" onchange="renderEmpleados()"> Contraer lista</label>
           </div>
         </div>
-        <div class="table-wrap" id="empleados-lista-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Contacto</th><th>Ingreso</th><th>Cargo</th><th>Departamento</th><th>Sal/Hora</th><th>Desc.</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
+        <div class="table-wrap" id="empleados-lista-wrap"><table><thead><tr><th>#</th><th>Empleado</th><th>Contacto</th><th>Ingreso</th><th>Orden asistencia</th><th>Cargo</th><th>Departamento</th><th>Sal/Hora</th><th>Desc.</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
       </div>
     </section>
 
