@@ -620,6 +620,36 @@ function exportarJSON() {
   URL.revokeObjectURL(url);
   toast('JSON exportado.');
 }
+function exportarEmpleadosActivosExcel() {
+  const empleados = ordenarPorNombre(state.empleados.filter(e => e.estado === 'activo'));
+  if (!empleados.length) {
+    alert('No hay empleados activos para exportar.');
+    return;
+  }
+  const headers = [
+    'Nombre completo', 'DUI', 'Teléfono', 'Dirección', 'Fecha de ingreso', 'Orden de asistencia',
+    'Cargo', 'Departamento / área', 'Salario por hora', 'Tipo de pago', 'AFP', 'ISSS', 'AFP descuento',
+    'Renta', 'Tipo de descuento', 'Descuento semanal', 'Ingreso adicional fijo neto', 'Estado', 'Fecha de salida',
+    'Contacto', 'Teléfono contacto', 'Parentesco'
+  ];
+  const filas = empleados.map(e => [
+    e.nombre, e.dui, e.telefono, e.direccion, e.fechaIngreso, num(e.ordenAsistencia) || '', e.cargo,
+    e.departamento, num(e.salarioHora).toFixed(2), e.tipoPago, e.afpInstitucion,
+    e.descontarIsss !== false ? 'Sí' : 'No', e.descontarAfp !== false ? 'Sí' : 'No', e.aplicarRenta ? 'Sí' : 'No',
+    e.descuentoConcepto || 'Ninguno', num(e.descuentoFijo).toFixed(2), num(e.ingresoFijo).toFixed(2),
+    e.estado === 'activo' ? 'Activo' : 'Inactivo', e.fechaSalida, e.contactoNombre, e.contactoTelefono, e.contactoParentesco
+  ]);
+  const escapar = valor => '"' + String(valor ?? '').replace(/"/g, '""') + '"';
+  const contenido = '\ufeff' + [headers, ...filas].map(fila => fila.map(escapar).join(';')).join('\r\n');
+  const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'empleados-activos-' + todayIso() + '.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+  toast('Lista de empleados activos exportada.');
+}
 function abrirSubidaGitHub() {
   const url = 'https://github.com/Excomeragro/SisPlanilla-Exco/upload/main';
   window.open(url, '_blank', 'noopener,noreferrer');
