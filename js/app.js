@@ -1344,12 +1344,12 @@ function renderPlanillaMasivaRapida() {
     const estadoHoras = resumenGuardado ? `Guardado: ${resumenGuardado}${planillaCreada ? ' · Planilla lista' : ''}` : '';
     const diasAsistencia = ['viernes', 'sabado', 'domingo', 'lunes', 'martes', 'miercoles', 'jueves'];
     const celdasDias = diasAsistencia.map(dia => dia === 'domingo'
-      ? `<td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')} ${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
-      : `<td>${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)} ${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
+      ? `<td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
+      : `<td>${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
     ).join('');
     return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} Â· ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}</td>
       ${celdasDias}
-      <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')} ${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')} ${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td></tr>`;
+      <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')}</td><td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')}</td><td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td></tr>`;
   }).join('');
   tbody.querySelectorAll('tr').forEach((row, index) => {
     const emp = empleados[index];
