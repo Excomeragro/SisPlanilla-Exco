@@ -590,6 +590,8 @@
   .cash-summary-table th:first-child, .cash-summary-table td:first-child { min-width: 90px; }
   .cash-report-total small { display:block; margin-top:3px; color:#64748B; font-size:11px; font-weight:400; }
   .payroll-detail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .detail-order-toggle { display:flex; align-items:center; gap:6px; margin-right:auto; color:#475569; font-size:12px; font-weight:700; }
+  .detail-order-toggle input { accent-color:#2563EB; }
   #receipt-overlay {
     display: none;
     position: fixed;

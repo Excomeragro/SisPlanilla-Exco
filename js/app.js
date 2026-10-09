@@ -124,7 +124,7 @@ function iso(d) {
 }
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false, usarOrdenAsistencia: false }; }
+function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false, usarOrdenAsistencia: false, usarOrdenAsistenciaDetalle: false }; }
 function normalizarEstado(raw) {
   const base = estadoVacio();
   if (Array.isArray(raw)) raw = { planillas: raw };
@@ -136,6 +136,7 @@ function normalizarEstado(raw) {
   base.ajustesPlanillaMasiva = raw.ajustesPlanillaMasiva && typeof raw.ajustesPlanillaMasiva === 'object' ? raw.ajustesPlanillaMasiva : {};
   base.aproximarPagos = !!raw.aproximarPagos;
   base.usarOrdenAsistencia = !!raw.usarOrdenAsistencia;
+  base.usarOrdenAsistenciaDetalle = !!raw.usarOrdenAsistenciaDetalle;
   const migrados = base.planillas.map(p => p.empleadoSnapshot).filter(e => e && e.nombre);
   migrados.forEach(e => {
     if (!base.empleados.some(x => x.id === e.id || x.nombre.toLowerCase() === e.nombre.toLowerCase())) base.empleados.push(normalizarEmpleado(e));
@@ -678,15 +679,16 @@ function importarJSON() {
 function ordenarPorNombre(empleados) {
   return [...empleados].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
 }
+function compararOrdenAsistencia(a, b) {
+  const ordenA = Math.max(0, Math.floor(num(a.ordenAsistencia)));
+  const ordenB = Math.max(0, Math.floor(num(b.ordenAsistencia)));
+  if (ordenA && ordenB && ordenA !== ordenB) return ordenA - ordenB;
+  if (ordenA && !ordenB) return -1;
+  if (!ordenA && ordenB) return 1;
+  return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+}
 function ordenarPorAsistencia(empleados) {
-  return [...empleados].sort((a, b) => {
-    const ordenA = Math.max(0, Math.floor(num(a.ordenAsistencia)));
-    const ordenB = Math.max(0, Math.floor(num(b.ordenAsistencia)));
-    if (ordenA && ordenB && ordenA !== ordenB) return ordenA - ordenB;
-    if (ordenA && !ordenB) return -1;
-    if (!ordenA && ordenB) return 1;
-    return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
-  });
+  return [...empleados].sort(compararOrdenAsistencia);
 }
 function empleadosActivos() { return ordenarPorNombre(state.empleados.filter(e => e.estado === 'activo')); }
 function empleadoPorId(id) { return state.empleados.find(e => e.id === id); }
@@ -2078,6 +2080,15 @@ function totalesDetallePlanilla(planillas) {
 function filaTotalesDetalle(label, total, clase = '') {
   return `<tr class="${clase}"><th colspan="2">${esc(label)}</th><th>${num(total.horasD).toFixed(2)}</th><th>${num(total.extraD).toFixed(2)}</th><th>${num(total.extraN).toFixed(2)}</th><th>${num(total.domingoD).toFixed(2)}</th><th>${num(total.domingoN).toFixed(2)}</th><th>${num(total.horasSeptimo).toFixed(2)}</th><th>${num(total.horasAsueto).toFixed(2)}</th><th>${num(total.asuetoExtraD).toFixed(2)}</th><th>${num(total.asuetoExtraN).toFixed(2)}</th><th>${num(total.horasPermiso).toFixed(2)}</th><th>${num(total.diasFalta).toFixed(0)}</th><th>${num(total.horasIncapacidad).toFixed(2)}</th><th>${money(total.devengado)}</th><th>${money(total.renta)}</th><th>${money(total.isss)}</th><th>${money(total.afp)}</th><th>${money(total.otros)}</th><th>${money(total.neto)}</th></tr>`;
 }
+function cambiarOrdenDetalleAsistencia(activo) {
+  state.usarOrdenAsistenciaDetalle = !!activo;
+  guardarEstado(false);
+  abrirDetallePlanilla();
+}
+function sincronizarControlOrdenDetalle() {
+  const control = document.getElementById('detalle-orden-asistencia');
+  if (control) control.checked = !!state.usarOrdenAsistenciaDetalle;
+}
 function abrirDetallePlanilla() {
   const planillasReporte = planillasSemanaSeleccionada();
   if (!planillasReporte.length) { toast('No hay registros para generar el detalle.'); return; }
@@ -2089,7 +2100,13 @@ function abrirDetallePlanilla() {
   });
   const periodos = [...new Set(planillasReporte.map(periodoTexto))].join(' / ');
   const filasPorArea = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'es')).map(([area, planillas]) => {
-    const ordenadas = planillas.slice().sort((a, b) => a.empleadoSnapshot.nombre.localeCompare(b.empleadoSnapshot.nombre, 'es'));
+    const ordenadas = planillas.slice().sort((a, b) => {
+      const empleadoA = empleadoPorId(a.empleadoId) || a.empleadoSnapshot || {};
+      const empleadoB = empleadoPorId(b.empleadoId) || b.empleadoSnapshot || {};
+      return state.usarOrdenAsistenciaDetalle
+        ? compararOrdenAsistencia(empleadoA, empleadoB)
+        : (a.empleadoSnapshot.nombre || '').localeCompare(b.empleadoSnapshot.nombre || '', 'es');
+    });
     const filas = ordenadas.map(p => {
       const c = p.calc || {};
       const otros = num(c.prestamos) + num(c.otrosDescuentos);
@@ -2120,6 +2137,7 @@ function abrirDetallePlanilla() {
   document.getElementById('payroll-detail-content').innerHTML = `<div class="payroll-report-header"><h1>EXCOMERCAFE SA DE CV</h1><h2>DETALLE DE PLANILLA DE SUELDOS</h2><div><strong>Período:</strong> ${esc(periodos)}</div></div><table class="payroll-detail-table payroll-single-table"><thead><tr><th>Empleado</th><th>$/Hora</th><th>Ord. D.</th><th>Extra D.</th><th>Extra N.</th><th>Dom. D.</th><th>Dom. N.</th><th>Sépt.</th><th>Asueto</th><th>As. Ext. D.</th><th>As. Ext. N.</th><th>Permiso h</th><th>Faltas d</th><th>Incap. h</th><th>Devengado</th><th>Renta</th><th>ISSS</th><th>AFP</th><th>Otros</th><th>Neto</th></tr></thead><tbody>${filasPorArea}${filaTotalesDetalle('TOTAL GENERAL', totalGeneral, 'grand-total')}</tbody></table>`;
   document.getElementById('payroll-detail-print-btn').textContent = 'Imprimir detalle';
   document.getElementById('payroll-detail-overlay').dataset.reportType = 'payroll';
+  sincronizarControlOrdenDetalle();
   document.getElementById('payroll-detail-overlay').classList.add('open');
 }
 function cerrarDetallePlanilla() {

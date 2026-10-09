@@ -464,7 +464,7 @@
 <div id="payroll-detail-overlay">
   <div class="payroll-detail-box">
     <div id="payroll-detail-content"></div>
-    <div class="payroll-detail-actions"><button class="btn btn-ghost btn-sm" onclick="cerrarDetallePlanilla()">Cerrar</button><button class="btn btn-success btn-sm" id="payroll-detail-print-btn" onclick="imprimirDetallePlanilla()">Imprimir detalle</button></div>
+    <div class="payroll-detail-actions"><label class="detail-order-toggle"><input type="checkbox" id="detalle-orden-asistencia" onchange="cambiarOrdenDetalleAsistencia(this.checked)"> Orden de asistencia</label><button class="btn btn-ghost btn-sm" onclick="cerrarDetallePlanilla()">Cerrar</button><button class="btn btn-success btn-sm" id="payroll-detail-print-btn" onclick="imprimirDetallePlanilla()">Imprimir detalle</button></div>
   </div>
 </div>
 
