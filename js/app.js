@@ -687,6 +687,20 @@ function compararOrdenAsistencia(a, b) {
   if (!ordenA && ordenB) return 1;
   return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
 }
+function ordenAsistenciaPlanilla(planilla) {
+  const empleadoActual = empleadoPorId(planilla.empleadoId) || {};
+  const empleadoSnapshot = planilla.empleadoSnapshot || {};
+  const orden = Math.max(0, Math.floor(num(empleadoActual.ordenAsistencia) || num(empleadoSnapshot.ordenAsistencia)));
+  return orden || Number.MAX_SAFE_INTEGER;
+}
+function empleadoOrdenAsistenciaPlanilla(planilla) {
+  const empleadoActual = empleadoPorId(planilla.empleadoId) || {};
+  const empleadoSnapshot = planilla.empleadoSnapshot || {};
+  return {
+    nombre: empleadoActual.nombre || empleadoSnapshot.nombre || '',
+    ordenAsistencia: num(empleadoActual.ordenAsistencia) || num(empleadoSnapshot.ordenAsistencia)
+  };
+}
 function ordenarPorAsistencia(empleados) {
   return [...empleados].sort(compararOrdenAsistencia);
 }
@@ -2099,10 +2113,15 @@ function abrirDetallePlanilla() {
     grupos.get(area).push(p);
   });
   const periodos = [...new Set(planillasReporte.map(periodoTexto))].join(' / ');
-  const filasPorArea = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'es')).map(([area, planillas]) => {
+  const filasPorArea = [...grupos.entries()].sort(([areaA, planillasA], [areaB, planillasB]) => {
+    if (!state.usarOrdenAsistenciaDetalle) return areaA.localeCompare(areaB, 'es');
+    const ordenA = Math.min(...planillasA.map(ordenAsistenciaPlanilla));
+    const ordenB = Math.min(...planillasB.map(ordenAsistenciaPlanilla));
+    return ordenA - ordenB || areaA.localeCompare(areaB, 'es');
+  }).map(([area, planillas]) => {
     const ordenadas = planillas.slice().sort((a, b) => {
-      const empleadoA = empleadoPorId(a.empleadoId) || a.empleadoSnapshot || {};
-      const empleadoB = empleadoPorId(b.empleadoId) || b.empleadoSnapshot || {};
+      const empleadoA = empleadoOrdenAsistenciaPlanilla(a);
+      const empleadoB = empleadoOrdenAsistenciaPlanilla(b);
       return state.usarOrdenAsistenciaDetalle
         ? compararOrdenAsistencia(empleadoA, empleadoB)
         : (a.empleadoSnapshot.nombre || '').localeCompare(b.empleadoSnapshot.nombre || '', 'es');
