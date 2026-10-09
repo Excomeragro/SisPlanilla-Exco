@@ -160,16 +160,18 @@
               <thead>
                 <tr>
                   <th rowspan="2">Empleado</th>
-                  <th class="mass-group-diurna" colspan="6">Extra diurna</th>
-                  <th class="mass-group-nocturna" colspan="6">Extra nocturna</th>
+                  <th class="mass-group-diurna" colspan="2">Viernes</th><th class="mass-group-diurna" colspan="2">Sábado</th><th class="mass-group-domingo" colspan="2">Domingo</th><th class="mass-group-diurna" colspan="2">Lunes</th><th class="mass-group-diurna" colspan="2">Martes</th><th class="mass-group-diurna" colspan="2">Miércoles</th><th class="mass-group-diurna" colspan="2">Jueves</th>
                   <th class="mass-group-asueto" colspan="3">Asueto</th>
-                  <th class="mass-group-domingo" colspan="2">Domingo</th>
                 </tr>
                 <tr>
-                  <th class="mass-group-diurna" title="Lunes">L</th><th class="mass-group-diurna" title="Martes">M</th><th class="mass-group-diurna" title="Miercoles">X</th><th class="mass-group-diurna" title="Jueves">J</th><th class="mass-group-diurna" title="Viernes">V</th><th class="mass-group-diurna" title="Sabado">S</th>
-                  <th class="mass-group-nocturna" title="Lunes nocturna">L</th><th class="mass-group-nocturna" title="Martes nocturna">M</th><th class="mass-group-nocturna" title="Miercoles nocturna">X</th><th class="mass-group-nocturna" title="Jueves nocturna">J</th><th class="mass-group-nocturna" title="Viernes nocturna">V</th><th class="mass-group-nocturna" title="Sabado nocturna">S</th>
+                  <th class="mass-group-diurna" title="Viernes extra diurna">D</th><th class="mass-group-nocturna" title="Viernes extra nocturna">N</th>
+                  <th class="mass-group-diurna" title="Sábado extra diurna">D</th><th class="mass-group-nocturna" title="Sábado extra nocturna">N</th>
+                  <th class="mass-group-domingo" title="Domingo laborado">D</th><th class="mass-group-domingo" title="Domingo nocturno">N</th>
+                  <th class="mass-group-diurna" title="Lunes extra diurna">D</th><th class="mass-group-nocturna" title="Lunes extra nocturna">N</th>
+                  <th class="mass-group-diurna" title="Martes extra diurna">D</th><th class="mass-group-nocturna" title="Martes extra nocturna">N</th>
+                  <th class="mass-group-diurna" title="Miércoles extra diurna">D</th><th class="mass-group-nocturna" title="Miércoles extra nocturna">N</th>
+                  <th class="mass-group-diurna" title="Jueves extra diurna">D</th><th class="mass-group-nocturna" title="Jueves extra nocturna">N</th>
                   <th class="mass-group-asueto" title="Asueto laborado">Normal</th><th class="mass-group-asueto" title="Extra diurna de asueto">ED</th><th class="mass-group-asueto" title="Extra nocturna de asueto">EN</th>
-                  <th class="mass-group-domingo" title="Domingo laborado">Dia</th><th class="mass-group-domingo" title="Domingo nocturno">Noche</th>
                 </tr>
               </thead>
               <tbody id="masiva-rapida-tbody">
@@ -177,6 +179,7 @@
               </tbody>
             </table>
           </div>
+          <div class="btn-row mass-quick-save"><button class="btn btn-primary" onclick="guardarCargaRapida()">Guardar carga rápida</button><span class="col-sub">Las horas también se guardan al escribir.</span></div>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Empleado seleccionado</th><th>Extra D.</th><th>Extra N.</th><th>Asueto</th><th>Extra asueto D./N.</th><th>Descanso D./N.</th><th>Permiso / faltas / incap.</th><th>Acciones</th></tr></thead><tbody id="masiva-ajustes-tbody"><tr><td colspan="8"><div class="table-empty">Sin empleados seleccionados.</div></td></tr></tbody></table></div>
         <div class="card-body mass-actions"><button class="btn btn-success" onclick="crearPlanillasMasivas()">Crear planillas de todos</button><button class="btn btn-primary" onclick="crearBoletasSemanaMasiva()">Crear boletas de la semana</button></div>

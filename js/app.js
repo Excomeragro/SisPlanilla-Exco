@@ -1275,7 +1275,7 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const clase = claseAjusteMasivoRapido(campo, dia);
   const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
   const tipo = esDias ? 'number' : 'text';
-  const ayuda = esDias ? '0' : '0, 0.25, 0.50 o 0.75';
+  const ayuda = '0';
   const validar = esDias ? '' : ' onchange="validarHoraCampo(this)"';
   return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}>`;
 }
@@ -1293,6 +1293,11 @@ function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   actualizarColorNombreMasivo(id);
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
+}
+function guardarCargaRapida() {
+  guardarAjustesMasivosSemana(false);
+  renderPlanillaMasivaRapida();
+  toast('Horas guardadas');
 }
 function filtrarPlanillaMasivaRapida() {
   renderPlanillaMasivaRapida();
@@ -1337,24 +1342,14 @@ function renderPlanillaMasivaRapida() {
     const resumenGuardado = resumenHorasAjusteMasivo(ajuste);
     const planillaCreada = !!state.planillas.find(p => p.empleadoId === id && p.fechaInicio === inicio && p.fechaFin === fin);
     const estadoHoras = resumenGuardado ? `Guardado: ${resumenGuardado}${planillaCreada ? ' · Planilla lista' : ''}` : '';
+    const diasAsistencia = ['viernes', 'sabado', 'domingo', 'lunes', 'martes', 'miercoles', 'jueves'];
+    const celdasDias = diasAsistencia.map(dia => dia === 'domingo'
+      ? `<td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')} ${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
+      : `<td>${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)} ${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
+    ).join('');
     return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} Â· ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'lunes', 'Lunes extra')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'martes', 'Martes extra')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'miercoles', 'Miercoles extra')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'jueves', 'Jueves extra')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'viernes', 'Viernes extra')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraDias', 'sabado', 'Sabado extra')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'lunes', 'Lunes nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'martes', 'Martes nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'miercoles', 'Miercoles nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'jueves', 'Jueves nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'viernes', 'Viernes nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'sabado', 'Sabado nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td>
-      <td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td></tr>`;
+      ${celdasDias}
+      <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')} ${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')} ${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td></tr>`;
   }).join('');
   tbody.querySelectorAll('tr').forEach((row, index) => {
     const emp = empleados[index];

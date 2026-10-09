@@ -303,6 +303,8 @@
   .mass-quick-controls .inline-check { padding-top:0; white-space:nowrap; }
   .attendance-order-input { width: 68px; min-width: 68px; height: 30px; padding: 4px 6px; text-align:center; font-weight:700; }
   .mass-quick-wrap { max-height: 520px; overflow: auto; border-top: 1px solid var(--border); }
+  .mass-quick-table td:not(:first-child) { white-space: nowrap; }
+  .mass-quick-save { align-items:center; gap:10px; margin-top:10px; }
   .mass-quick-table {
     min-width: 1040px;
     table-layout: fixed;
