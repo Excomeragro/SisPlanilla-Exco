@@ -1204,6 +1204,20 @@ function buscarEmpleadoMasivo() {
   }
   cargarAjusteMasivoForm(emp ? ajustesPlanillaMasiva[emp.id] : null);
 }
+function seleccionarEmpleadoMasivo(id) {
+  const emp = empleadoPorId(id);
+  if (!emp) return false;
+  document.getElementById('m-empleado').value = id;
+  document.getElementById('m-empleado-buscar').value = emp.nombre;
+  document.getElementById('m-empleado-info').value = `${emp.departamento} · ${emp.cargo}`;
+  cargarAjusteMasivoForm(ajustesPlanillaMasiva[id]);
+  return true;
+}
+function siguienteEmpleadoMasivo(id) {
+  const empleados = empleadosPlanillaMasiva();
+  const indice = empleados.findIndex(emp => emp.id === id);
+  return indice >= 0 ? empleados[indice + 1] || null : empleados[0] || null;
+}
 function guardarAjusteMasivo() {
   const id = document.getElementById('m-empleado').value;
   const emp = empleadoPorId(id);
@@ -1211,18 +1225,21 @@ function guardarAjusteMasivo() {
   const ajuste = leerAjusteMasivoForm();
   ajustesPlanillaMasiva[id] = ajuste;
   guardarAjustesMasivosSemana(false);
-  solicitarSincronizacion();
-  limpiarAjusteMasivo();
+  programarGuardadoSupabase();
   renderPlanillaMasiva();
-  toast('Guardado');
+  const siguiente = siguienteEmpleadoMasivo(id);
+  if (siguiente) {
+    seleccionarEmpleadoMasivo(siguiente.id);
+    document.getElementById('m-extra-lunes')?.focus();
+    toast(`Guardado. Siguiente: ${siguiente.nombre}`);
+  } else {
+    limpiarAjusteMasivo();
+    solicitarSincronizacion();
+    toast('Guardado. Ya no hay más empleados en la lista.');
+  }
 }
 function editarAjusteMasivo(id) {
-  const emp = empleadoPorId(id);
-  if (!emp) return;
-  document.getElementById('m-empleado').value = id;
-  document.getElementById('m-empleado-buscar').value = emp.nombre;
-  document.getElementById('m-empleado-info').value = `${emp.departamento} · ${emp.cargo}`;
-  cargarAjusteMasivoForm(ajustesPlanillaMasiva[id]);
+  seleccionarEmpleadoMasivo(id);
 }
 function eliminarAjusteMasivo(id) {
   delete ajustesPlanillaMasiva[id];
