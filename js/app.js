@@ -1315,6 +1315,128 @@ function guardarCargaRapida() {
   renderPlanillaMasivaRapida();
   toast('Horas guardadas');
 }
+function normalizarNombreAsistencia(nombre) {
+  return String(nombre || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function valorHoraImportada(valor) {
+  if (typeof valor === 'number') return Number.isFinite(valor) && valor > 0 ? valor : 0;
+  const texto = String(valor ?? '').trim().replace(',', '.');
+  if (!texto) return 0;
+  const partes = texto.match(/^(\d+(?:\.\d+)?):(\d{1,2})$/);
+  if (partes) {
+    const minutos = Number(partes[2]);
+    return minutos < 60 ? Number(partes[1]) + minutos / 60 : 0;
+  }
+  const resultado = Number.parseFloat(texto.replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(resultado) && resultado > 0 ? resultado : 0;
+}
+function empleadoDesdeFilaAsistencia(nombre, empleados) {
+  const clave = normalizarNombreAsistencia(nombre);
+  if (!clave) return null;
+  const equivalencias = {
+    'hector flores': 'flores caceres hector daniel',
+    'jose pacheco': 'pacheco cea jose ernesto',
+    'jose escalante marcial': 'escalante guerrero jose marcial',
+    'raimundo cea': 'cea salguero reimundo',
+    'mario cruz': 'cruz valle mario antonio',
+    'julio brenes': 'perez brenes julio armando',
+    'ismael barcenas': 'mendoza ismael de jesus',
+    'tomas martinez': 'martinez martinez tomas alejandro',
+    'jose martinez': 'martinez jose luis',
+    'jose ricardo gonzalez': 'gonzalez martinez jose ricardo',
+    'samuel muson': 'muson valencia samuel humberto',
+    'alexander morales': 'morales guzman gustavo alexander',
+    'norma acuna': 'acuna de moralez norma lizeth',
+    'jenifer ascencio': 'ascencio medina jenniffer esmeralda',
+    'carmen estela': 'palacios arevalo estela del carmen',
+    'juan palacios': 'palacios arevalo juan alberto',
+    'jose ulloa': 'ulloa mendez jose angel',
+    'blanca lidia carias': 'carias castro blanca lidia',
+    'sonia aragon': 'aragon sandoval sonia ruth',
+    'gladys mancia': 'mancia aviles gladis virginia',
+    'norma daniela': 'galindo nunez norma daniela',
+    'lorena santamaria': 'santamaria lopez lorena aracely',
+    'jerson gonzalez': 'gonzalez alarcon jerson yonatan',
+    'roberto gudiel': 'gudiel roberto ernesto',
+    'yanira del carmen': 'moreno medina yanira del carmen',
+    'belina del carmen aguilar': 'aguilar belinda del carmen',
+    'jacqueline arcia': 'arcia de ramirez jacquelinne lissette',
+    'maria julia flores': 'flores galeano maria julia',
+    'nathaly estrada': 'estrada delgado nathaly elizabeth',
+    'sandra elizabeth palacios': 'palacios arevalo sandra elizabeth',
+    'joseline martinez': 'martinez de osorio joseline del rocio',
+    'rosmery ulloa': 'ulloa mendez rosmery',
+    'stephanie tadeo': 'tadeo galeano stephanie sarai',
+    'jorge ulises escobar': 'escobar alfaro jorge ulises',
+    'carmen moreno': 'moreno pena carmen',
+    'jennifer muson': 'muson moreno jenniffer marisol',
+    'marina carmen galeano': 'galeano vda de tadeo marina carmen',
+    'karla gabriela carpio': 'carpio juarez karla gabriela'
+  };
+  const claveObjetivo = equivalencias[clave] || clave;
+  const exacto = empleados.find(emp => normalizarNombreAsistencia(emp.nombre) === claveObjetivo);
+  if (exacto) return exacto;
+  const tokens = clave.split(' ').filter(token => token.length > 2);
+  return empleados.find(emp => {
+    const nombreEmpleado = normalizarNombreAsistencia(emp.nombre);
+    return tokens.length >= 2 && tokens.every(token => nombreEmpleado.includes(token));
+  }) || null;
+}
+async function importarHorasAsistencia(archivo) {
+  const entrada = document.getElementById('m-importar-asistencia');
+  if (!archivo) return;
+  if (!window.XLSX) {
+    toast('No se pudo cargar el lector de Excel. Revisa tu conexión e inténtalo de nuevo.', 5000);
+    if (entrada) entrada.value = '';
+    return;
+  }
+  try {
+    const datos = await archivo.arrayBuffer();
+    const libro = window.XLSX.read(datos, { type: 'array', cellDates: false });
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const filas = window.XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: '' });
+    const empleados = empleadosPlanillaMasiva();
+    const dias = ['viernes', 'sabado', 'domingo', 'lunes', 'martes', 'miercoles', 'jueves'];
+    const columnasExtra = [3, 6, 9, 12, 15, 18, 21];
+    let importados = 0;
+    const noEncontrados = [];
+    filas.forEach(fila => {
+      const horas = columnasExtra.map(columna => valorHoraImportada(fila[columna]));
+      const empleado = empleadoDesdeFilaAsistencia(fila[0], empleados);
+      if (!empleado) {
+        const nombre = String(fila[0] ?? '').trim();
+        if (nombre && horas.some(valor => valor > 0)) noEncontrados.push(nombre);
+        return;
+      }
+      if (!horas.some(valor => valor > 0)) return;
+      const ajuste = ajustesPlanillaMasiva[empleado.id] || ajusteMasivoVacio();
+      horas.forEach((valor, indice) => {
+        if (valor <= 0) return;
+        if (dias[indice] === 'domingo') ajuste.hDomingo = valor;
+        else ajuste.extraDias[dias[indice]] = valor;
+      });
+      ajustesPlanillaMasiva[empleado.id] = ajuste;
+      importados += 1;
+    });
+    guardarAjustesMasivosSemana(false);
+    renderPlanillaMasiva();
+    solicitarSincronizacion();
+    const avisoNoEncontrados = [...new Set(noEncontrados)].slice(0, 3);
+    const detalle = avisoNoEncontrados.length ? ` No encontrados: ${avisoNoEncontrados.join(', ')}${noEncontrados.length > 3 ? '...' : ''}.` : '';
+    toast(`Importados ${importados} empleados desde la asistencia.${detalle}`, 6000);
+  } catch (error) {
+    console.error(error);
+    toast('No se pudo leer el archivo. Usa Excel (.xlsx) o CSV con los nombres en la primera columna.', 5000);
+  } finally {
+    if (entrada) entrada.value = '';
+  }
+}
 function filtrarPlanillaMasivaRapida() {
   renderPlanillaMasivaRapida();
 }
@@ -1349,7 +1471,7 @@ function renderPlanillaMasivaRapida() {
   }
   const { inicio, fin } = semanaMasivaActual();
   if (!empleados.length) {
-    tbody.innerHTML = '<tr><td colspan="18"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="19"><div class="table-empty">No hay empleados para mostrar.</div></td></tr>';
     return;
   }
   tbody.innerHTML = empleados.map(emp => {
@@ -1363,7 +1485,7 @@ function renderPlanillaMasivaRapida() {
       ? `<td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
       : `<td>${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
     ).join('');
-    return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} Â· ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}</td>
+    return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} · ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}</td><td class="mass-order-cell">${num(emp.ordenAsistencia) > 0 ? esc(emp.ordenAsistencia) : '—'}</td>
       ${celdasDias}
       <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')}</td><td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')}</td><td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td></tr>`;
   }).join('');
