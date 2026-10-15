@@ -2340,6 +2340,11 @@ function imprimirLiquidacion() {
     : tipoVacacion === 'ninguna' ? 'No incluida' : 'Proporcional del período actual';
   const fechaTexto = valor => valor ? new Date(`${valor}T00:00:00`).toLocaleDateString('es-SV') : '—';
   const emp = datos.empleado;
+  const filas = datos.modo === 'vacacion'
+    ? `<tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr><tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr><tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr><tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr>`
+    : datos.modo === 'aguinaldo'
+      ? `<tr><td>Aguinaldo proporcional</td><td>Según antigüedad y días acumulados</td><td>${money(datos.aguinaldo)}</td></tr>`
+      : `<tr><td>Indemnización</td><td>${tipoTexto} · ${datos.tiempo.anios.toFixed(2)} años</td><td>${money(datos.indemnizacion)}</td></tr><tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr><tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr><tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr><tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr><tr><td>Aguinaldo proporcional</td><td>Según antigüedad y días acumulados</td><td>${money(datos.aguinaldo)}</td></tr>`;
   const contenedor = document.getElementById('liquidacion-print');
   if (!contenedor) return;
   contenedor.innerHTML = `
@@ -2347,7 +2352,7 @@ function imprimirLiquidacion() {
       <header class="liquidacion-print-header">
         <div>
           <h1>EXCOMERCAFE S.A. DE C.V.</h1>
-          <h2>LIQUIDACIÓN LABORAL</h2>
+          <h2>${textoModoLiquidacion(datos.modo).toUpperCase()}</h2>
         </div>
         <div class="liquidacion-print-date">Fecha de emisión: ${fechaTexto(todayIso())}</div>
       </header>
@@ -2368,13 +2373,8 @@ function imprimirLiquidacion() {
       <table class="liquidacion-print-table">
         <thead><tr><th>Concepto</th><th>Detalle</th><th>Importe</th></tr></thead>
         <tbody>
-          <tr><td>Indemnización</td><td>${tipoTexto} · ${datos.tiempo.anios.toFixed(2)} años</td><td>${money(datos.indemnizacion)}</td></tr>
-          <tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr>
-          <tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr>
-          <tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr>
-          <tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr>
-          <tr><td>Aguinaldo proporcional</td><td>Según antigüedad y días acumulados</td><td>${money(datos.aguinaldo)}</td></tr>
-          <tr class="liquidacion-print-total"><td colspan="2">TOTAL DE LIQUIDACIÓN</td><td>${money(datos.total)}</td></tr>
+          ${filas}
+          <tr class="liquidacion-print-total"><td colspan="2">${textoModoLiquidacion(datos.modo).toUpperCase()}</td><td>${money(datos.total)}</td></tr>
         </tbody>
       </table>
       <p class="liquidacion-print-note">Cálculo referencial. Revisar topes, descuentos y demás prestaciones aplicables antes de realizar el pago.</p>
@@ -2531,6 +2531,34 @@ function tiempoLaborado(emp) {
   if (m < 0) { y--; m += 12; }
   return `${y} años, ${m} meses, ${d} días`;
 }
+let modoCalculoLiquidacion = 'completa';
+function textoModoLiquidacion(modo = modoCalculoLiquidacion) {
+  if (modo === 'vacacion') return 'Solo vacaciones';
+  if (modo === 'aguinaldo') return 'Solo aguinaldo';
+  return 'Liquidación completa';
+}
+function totalModoLiquidacion(datos, modo = modoCalculoLiquidacion) {
+  if (modo === 'vacacion') return datos.vacacionNeta;
+  if (modo === 'aguinaldo') return datos.aguinaldo;
+  return datos.indemnizacion + datos.vacacionNeta + datos.aguinaldo;
+}
+function sincronizarModoLiquidacion() {
+  document.querySelectorAll('[data-liquidacion-modo]').forEach(btn => {
+    const activo = btn.dataset.liquidacionModo === modoCalculoLiquidacion;
+    btn.classList.toggle('active', activo);
+    btn.classList.toggle('btn-primary', activo);
+    btn.classList.toggle('btn-ghost', !activo);
+  });
+  const etiqueta = document.getElementById('liq-total-label');
+  if (etiqueta) etiqueta.textContent = modoCalculoLiquidacion === 'vacacion'
+    ? 'Pago total de vacaciones'
+    : modoCalculoLiquidacion === 'aguinaldo' ? 'Pago total de aguinaldo' : 'Pago total de liquidación';
+}
+function seleccionarModoLiquidacion(modo) {
+  modoCalculoLiquidacion = ['completa', 'vacacion', 'aguinaldo'].includes(modo) ? modo : 'completa';
+  sincronizarModoLiquidacion();
+  calcularLiquidacion();
+}
 function tiempoEntreFechas(inicio, fin) {
   const start = fechaLocal(inicio);
   const end = fechaLocal(fin);
@@ -2618,7 +2646,7 @@ function calcularLiquidacion() {
   const diasAguinaldo = diasIncluidos(inicioAguinaldo > ingreso ? inicioAguinaldo : ingreso, salida);
   const aguinaldoDias = diasAguinaldoPorAntiguedad(tiempo.anios);
   const aguinaldo = salarioDiario * aguinaldoDias * Math.min(diasAguinaldo / 365, 1);
-  const total = indemnizacion + vacacionNeta + aguinaldo;
+  const total = totalModoLiquidacion({ indemnizacion, vacacionNeta, aguinaldo });
   const resumenEmpleado = document.getElementById('liq-resumen-empleado');
   const resumenTiempo = document.getElementById('liq-tiempo');
   const resumenSalario = document.getElementById('liq-resumen-salario');
@@ -2641,7 +2669,8 @@ function calcularLiquidacion() {
   if (resumenVacacionNeta) resumenVacacionNeta.textContent = money(vacacionNeta);
   if (resumenAguinaldo) resumenAguinaldo.textContent = money(aguinaldo);
   if (resumenTotal) resumenTotal.textContent = money(total);
-  return { empleado: emp, tipo, porcentaje, salarioMensual, tiempo, indemnizacion, vacacionBruta, isssVacacion, afpVacacion, vacacionNeta, aguinaldo, total };
+  sincronizarModoLiquidacion();
+  return { empleado: emp, tipo, porcentaje, salarioMensual, tiempo, indemnizacion, vacacionBruta, isssVacacion, afpVacacion, vacacionNeta, aguinaldo, total, modo: modoCalculoLiquidacion };
 }
 function renderLiquidacion() {
   const select = document.getElementById('liq-empleado');

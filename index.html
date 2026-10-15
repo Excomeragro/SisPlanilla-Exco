@@ -343,7 +343,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>Resultado</h2><div class="btn-row"><button class="btn btn-primary btn-sm" onclick="calcularLiquidacion()">Calcular</button><button class="btn btn-success btn-sm" onclick="imprimirLiquidacion()">Imprimir liquidación</button></div></div>
+        <div class="card-header"><h2>Resultado</h2><div class="btn-row liquidacion-actions"><button class="btn btn-primary btn-sm liquidacion-mode-btn active" data-liquidacion-modo="completa" onclick="seleccionarModoLiquidacion('completa')">Liquidación completa</button><button class="btn btn-ghost btn-sm liquidacion-mode-btn" data-liquidacion-modo="vacacion" onclick="seleccionarModoLiquidacion('vacacion')">Solo vacaciones</button><button class="btn btn-ghost btn-sm liquidacion-mode-btn" data-liquidacion-modo="aguinaldo" onclick="seleccionarModoLiquidacion('aguinaldo')">Solo aguinaldo</button><button class="btn btn-success btn-sm" onclick="imprimirLiquidacion()">Imprimir cálculo</button></div></div>
         <div class="card-body">
           <div class="liquidacion-summary">
             <div><span>Empleado</span><strong id="liq-resumen-empleado">—</strong></div>
@@ -356,7 +356,7 @@
             <div><span>AFP vacación</span><strong id="liq-vacacion-afp-total">$0.00</strong></div>
             <div><span>Vacación neta</span><strong id="liq-vacacion-neta">$0.00</strong></div>
             <div><span>Aguinaldo proporcional</span><strong id="liq-aguinaldo">$0.00</strong></div>
-            <div class="liquidacion-total"><span>Pago total de liquidación</span><strong id="liq-total">$0.00</strong></div>
+            <div class="liquidacion-total"><span id="liq-total-label">Pago total de liquidación</span><strong id="liq-total">$0.00</strong></div>
           </div>
         </div>
       </div>

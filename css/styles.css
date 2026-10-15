@@ -206,6 +206,8 @@
   .liquidacion-summary strong { display:block; margin-top:5px; font-size:16px; font-variant-numeric:tabular-nums; }
   .liquidacion-summary .liquidacion-total { grid-column: 1 / -1; background:#ECFDF5; border-color:#86EFAC; }
   .liquidacion-summary .liquidacion-total strong { color:#047857; font-size:28px; }
+  .liquidacion-actions { flex-wrap:wrap; justify-content:flex-end; }
+  .liquidacion-mode-btn.active { box-shadow:0 0 0 2px rgba(37,99,235,.18); }
   .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
