@@ -334,8 +334,12 @@
             <div class="form-group"><label>Fecha de ingreso</label><input type="date" id="liq-ingreso" onchange="calcularLiquidacion()"></div>
             <div class="form-group"><label>Último día trabajado</label><input type="date" id="liq-salida" onchange="calcularLiquidacion()"></div>
             <div class="form-group span2"><label>Salario mensual base ($)</label><input type="number" id="liq-salario-mensual" min="0" step="0.01" oninput="calcularLiquidacion()"><small class="field-help">Se propone desde el salario por hora: salario por hora × 8 × 30. Puedes editarlo.</small></div>
+            <div class="form-divider">Prestaciones adicionales</div>
+            <div class="form-group"><label>Vacación</label><select id="liq-vacacion-tipo" onchange="actualizarVacacionTipo()"><option value="proporcional">Proporcional del período actual</option><option value="completa">Completa</option><option value="ninguna">No incluir</option></select></div>
+            <div class="form-group"><label>Períodos completos pendientes</label><input type="number" id="liq-vacacion-periodos" value="1" min="1" max="3" step="1" oninput="calcularLiquidacion()"><small class="field-help">Se usa cuando eliges vacación completa.</small></div>
+            <div class="form-group span2"><label>Descuentos sobre vacación</label><div class="check-grid"><label><input type="checkbox" id="liq-vacacion-isss" checked onchange="calcularLiquidacion()"> ISSS 3%</label><label><input type="checkbox" id="liq-vacacion-afp" checked onchange="calcularLiquidacion()"> AFP 7.25%</label></div></div>
           </div>
-          <div class="liquidacion-note">El cálculo no incluye vacaciones, aguinaldo, salarios pendientes ni otros conceptos de liquidación. Revisa los topes y condiciones aplicables antes de pagar.</div>
+          <div class="liquidacion-note">El cálculo incluye la vacación y el aguinaldo proporcional. ISSS y AFP se aplican únicamente a la vacación según tu configuración. Revisa los topes y condiciones aplicables antes de pagar.</div>
         </div>
       </div>
       <div class="card">
@@ -346,7 +350,13 @@
             <div><span>Tiempo laborado</span><strong id="liq-tiempo">—</strong></div>
             <div><span>Salario mensual base</span><strong id="liq-resumen-salario">$0.00</strong></div>
             <div><span>Porcentaje aplicado</span><strong id="liq-resumen-porcentaje">0%</strong></div>
-            <div class="liquidacion-total"><span>Pago por indemnización</span><strong id="liq-total">$0.00</strong></div>
+            <div><span>Indemnización</span><strong id="liq-indemnizacion">$0.00</strong></div>
+            <div><span>Vacación bruta</span><strong id="liq-vacacion-bruta">$0.00</strong></div>
+            <div><span>ISSS vacación</span><strong id="liq-vacacion-isss-total">$0.00</strong></div>
+            <div><span>AFP vacación</span><strong id="liq-vacacion-afp-total">$0.00</strong></div>
+            <div><span>Vacación neta</span><strong id="liq-vacacion-neta">$0.00</strong></div>
+            <div><span>Aguinaldo proporcional</span><strong id="liq-aguinaldo">$0.00</strong></div>
+            <div class="liquidacion-total"><span>Pago total de liquidación</span><strong id="liq-total">$0.00</strong></div>
           </div>
         </div>
       </div>

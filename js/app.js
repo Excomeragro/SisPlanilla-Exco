@@ -2472,6 +2472,32 @@ function porcentajeLiquidacion(tipo) {
   if (tipo === 'despido') return 100;
   return Math.max(0, num(document.getElementById('liq-porcentaje')?.value));
 }
+function diasIncluidos(inicio, fin) {
+  const start = fechaLocal(inicio);
+  const end = fechaLocal(fin);
+  if (!start || !end || end < start) return 0;
+  return Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+}
+function inicioPeriodoVacacion(fechaIngreso, fechaSalida) {
+  const ingreso = fechaLocal(fechaIngreso);
+  const salida = fechaLocal(fechaSalida);
+  if (!ingreso || !salida) return fechaIngreso;
+  let aniversario = new Date(salida.getFullYear(), ingreso.getMonth(), ingreso.getDate());
+  if (aniversario > salida) aniversario = new Date(salida.getFullYear() - 1, ingreso.getMonth(), ingreso.getDate());
+  const inicio = aniversario > ingreso ? aniversario : ingreso;
+  return iso(inicio);
+}
+function diasAguinaldoPorAntiguedad(anios) {
+  if (anios >= 10) return 21;
+  if (anios >= 3) return 19;
+  return 15;
+}
+function actualizarVacacionTipo() {
+  const tipo = document.getElementById('liq-vacacion-tipo')?.value || 'proporcional';
+  const periodos = document.getElementById('liq-vacacion-periodos');
+  if (periodos) periodos.disabled = tipo !== 'completa';
+  calcularLiquidacion();
+}
 function actualizarTipoLiquidacion() {
   const tipo = document.getElementById('liq-tipo')?.value || 'despido';
   const porcentaje = document.getElementById('liq-porcentaje');
@@ -2500,18 +2526,46 @@ function calcularLiquidacion() {
   const tipo = document.getElementById('liq-tipo')?.value || 'despido';
   const porcentaje = porcentajeLiquidacion(tipo);
   const tiempo = tiempoEntreFechas(ingreso, salida);
-  const total = salarioMensual * (porcentaje / 100) * tiempo.anios;
+  const indemnizacion = salarioMensual * (porcentaje / 100) * tiempo.anios;
+  const salarioDiario = salarioMensual / 30;
+  const vacacionTipo = document.getElementById('liq-vacacion-tipo')?.value || 'proporcional';
+  const vacacionPeriodos = Math.max(1, Math.min(3, Math.floor(num(document.getElementById('liq-vacacion-periodos')?.value) || 1)));
+  const vacacionAnual = salarioDiario * 15 * 1.30;
+  const diasPeriodoVacacion = diasIncluidos(inicioPeriodoVacacion(ingreso, salida), salida);
+  const vacacionBruta = vacacionTipo === 'completa'
+    ? vacacionAnual * vacacionPeriodos
+    : vacacionTipo === 'proporcional' ? vacacionAnual * Math.min(diasPeriodoVacacion / 365, 1) : 0;
+  const isssVacacion = document.getElementById('liq-vacacion-isss')?.checked ? vacacionBruta * 0.03 : 0;
+  const afpVacacion = document.getElementById('liq-vacacion-afp')?.checked ? vacacionBruta * 0.0725 : 0;
+  const vacacionNeta = vacacionBruta - isssVacacion - afpVacacion;
+  const inicioAguinaldo = ingreso && salida ? `${fechaLocal(salida).getFullYear()}-01-01` : '';
+  const diasAguinaldo = diasIncluidos(inicioAguinaldo > ingreso ? inicioAguinaldo : ingreso, salida);
+  const aguinaldoDias = diasAguinaldoPorAntiguedad(tiempo.anios);
+  const aguinaldo = salarioDiario * aguinaldoDias * Math.min(diasAguinaldo / 365, 1);
+  const total = indemnizacion + vacacionNeta + aguinaldo;
   const resumenEmpleado = document.getElementById('liq-resumen-empleado');
   const resumenTiempo = document.getElementById('liq-tiempo');
   const resumenSalario = document.getElementById('liq-resumen-salario');
   const resumenPorcentaje = document.getElementById('liq-resumen-porcentaje');
+  const resumenIndemnizacion = document.getElementById('liq-indemnizacion');
+  const resumenVacacionBruta = document.getElementById('liq-vacacion-bruta');
+  const resumenVacacionIsss = document.getElementById('liq-vacacion-isss-total');
+  const resumenVacacionAfp = document.getElementById('liq-vacacion-afp-total');
+  const resumenVacacionNeta = document.getElementById('liq-vacacion-neta');
+  const resumenAguinaldo = document.getElementById('liq-aguinaldo');
   const resumenTotal = document.getElementById('liq-total');
   if (resumenEmpleado) resumenEmpleado.textContent = emp?.nombre || '—';
   if (resumenTiempo) resumenTiempo.textContent = tiempo.dias > 0 ? `${tiempo.texto} (${tiempo.dias} días)` : tiempo.texto;
   if (resumenSalario) resumenSalario.textContent = money(salarioMensual);
   if (resumenPorcentaje) resumenPorcentaje.textContent = `${porcentaje.toFixed(2)}%`;
+  if (resumenIndemnizacion) resumenIndemnizacion.textContent = money(indemnizacion);
+  if (resumenVacacionBruta) resumenVacacionBruta.textContent = money(vacacionBruta);
+  if (resumenVacacionIsss) resumenVacacionIsss.textContent = money(isssVacacion);
+  if (resumenVacacionAfp) resumenVacacionAfp.textContent = money(afpVacacion);
+  if (resumenVacacionNeta) resumenVacacionNeta.textContent = money(vacacionNeta);
+  if (resumenAguinaldo) resumenAguinaldo.textContent = money(aguinaldo);
   if (resumenTotal) resumenTotal.textContent = money(total);
-  return { empleado: emp, tipo, porcentaje, salarioMensual, tiempo, total };
+  return { empleado: emp, tipo, porcentaje, salarioMensual, tiempo, indemnizacion, vacacionBruta, isssVacacion, afpVacacion, vacacionNeta, aguinaldo, total };
 }
 function renderLiquidacion() {
   const select = document.getElementById('liq-empleado');
@@ -2523,6 +2577,7 @@ function renderLiquidacion() {
   select.value = conserva ? anterior : (empleados[0]?.id || '');
   if (!conserva) cargarLiquidacionEmpleado();
   actualizarTipoLiquidacion();
+  actualizarVacacionTipo();
 }
 function abrirLiquidacionEmpleado(id) {
   showTab('liquidaciones');
