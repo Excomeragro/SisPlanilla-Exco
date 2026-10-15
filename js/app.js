@@ -923,6 +923,7 @@ function showTab(tab) {
   document.getElementById('view-' + tab).classList.add('active');
   document.querySelectorAll('.sidebar-btn[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   if (tab === 'historial') renderHistorial();
+  if (tab === 'liquidaciones') renderLiquidacion();
   if (tab === 'boletas') { renderBoletasDisponibles(); renderBoletasGeneradas(); }
   if (tab === 'planilla-masiva') { cargarAjustesMasivosGuardados(); renderPlanillaMasiva(); }
   if (tab === 'ajustes' && supabaseUsuario) cargarUsuariosSupabase();
@@ -2454,6 +2455,81 @@ function tiempoLaborado(emp) {
   if (m < 0) { y--; m += 12; }
   return `${y} años, ${m} meses, ${d} días`;
 }
+function tiempoEntreFechas(inicio, fin) {
+  const start = fechaLocal(inicio);
+  const end = fechaLocal(fin);
+  if (!start || !end || end < start) return { dias: 0, anios: 0, texto: 'Fechas inválidas' };
+  const dias = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  let y = end.getFullYear() - start.getFullYear();
+  let m = end.getMonth() - start.getMonth();
+  let d = end.getDate() - start.getDate();
+  if (d < 0) { m--; d += new Date(end.getFullYear(), end.getMonth(), 0).getDate(); }
+  if (m < 0) { y--; m += 12; }
+  return { dias, anios: dias / 365, texto: `${y} años, ${m} meses, ${d} días` };
+}
+function porcentajeLiquidacion(tipo) {
+  if (tipo === 'renuncia') return 50;
+  if (tipo === 'despido') return 100;
+  return Math.max(0, num(document.getElementById('liq-porcentaje')?.value));
+}
+function actualizarTipoLiquidacion() {
+  const tipo = document.getElementById('liq-tipo')?.value || 'despido';
+  const porcentaje = document.getElementById('liq-porcentaje');
+  if (!porcentaje) return;
+  const personalizado = tipo === 'personalizado';
+  porcentaje.disabled = !personalizado;
+  if (!personalizado) porcentaje.value = tipo === 'renuncia' ? '50' : '100';
+  calcularLiquidacion();
+}
+function cargarLiquidacionEmpleado() {
+  const emp = empleadoPorId(document.getElementById('liq-empleado')?.value);
+  if (!emp) { calcularLiquidacion(); return; }
+  const ingreso = document.getElementById('liq-ingreso');
+  const salida = document.getElementById('liq-salida');
+  const salario = document.getElementById('liq-salario-mensual');
+  if (ingreso) ingreso.value = emp.fechaIngreso || EMPLOYEE_START_DATE;
+  if (salida) salida.value = emp.estado === 'inactivo' && emp.fechaSalida ? emp.fechaSalida : todayIso();
+  if (salario) salario.value = red(num(emp.salarioHora) * 8 * 30).toFixed(2);
+  calcularLiquidacion();
+}
+function calcularLiquidacion() {
+  const emp = empleadoPorId(document.getElementById('liq-empleado')?.value);
+  const ingreso = document.getElementById('liq-ingreso')?.value;
+  const salida = document.getElementById('liq-salida')?.value;
+  const salarioMensual = Math.max(0, num(document.getElementById('liq-salario-mensual')?.value));
+  const tipo = document.getElementById('liq-tipo')?.value || 'despido';
+  const porcentaje = porcentajeLiquidacion(tipo);
+  const tiempo = tiempoEntreFechas(ingreso, salida);
+  const total = salarioMensual * (porcentaje / 100) * tiempo.anios;
+  const resumenEmpleado = document.getElementById('liq-resumen-empleado');
+  const resumenTiempo = document.getElementById('liq-tiempo');
+  const resumenSalario = document.getElementById('liq-resumen-salario');
+  const resumenPorcentaje = document.getElementById('liq-resumen-porcentaje');
+  const resumenTotal = document.getElementById('liq-total');
+  if (resumenEmpleado) resumenEmpleado.textContent = emp?.nombre || '—';
+  if (resumenTiempo) resumenTiempo.textContent = tiempo.dias > 0 ? `${tiempo.texto} (${tiempo.dias} días)` : tiempo.texto;
+  if (resumenSalario) resumenSalario.textContent = money(salarioMensual);
+  if (resumenPorcentaje) resumenPorcentaje.textContent = `${porcentaje.toFixed(2)}%`;
+  if (resumenTotal) resumenTotal.textContent = money(total);
+  return { empleado: emp, tipo, porcentaje, salarioMensual, tiempo, total };
+}
+function renderLiquidacion() {
+  const select = document.getElementById('liq-empleado');
+  if (!select) return;
+  const anterior = select.value;
+  const empleados = ordenarPorNombre(state.empleados);
+  select.innerHTML = empleados.map(emp => `<option value="${esc(emp.id)}">${esc(emp.nombre)} · ${emp.estado === 'activo' ? 'Activo' : 'Inactivo'}</option>`).join('') || '<option value="">Sin empleados</option>';
+  const conserva = empleados.some(emp => emp.id === anterior);
+  select.value = conserva ? anterior : (empleados[0]?.id || '');
+  if (!conserva) cargarLiquidacionEmpleado();
+  actualizarTipoLiquidacion();
+}
+function abrirLiquidacionEmpleado(id) {
+  showTab('liquidaciones');
+  const select = document.getElementById('liq-empleado');
+  if (select) select.value = id;
+  cargarLiquidacionEmpleado();
+}
 
 function renderTodo() {
   sincronizarBoletasConPlanillas();
@@ -2463,6 +2539,7 @@ function renderTodo() {
   renderPlanillaMasiva();
   renderPlanilla();
   renderHistorial();
+  renderLiquidacion();
   renderBoletasGeneradas();
   calcularPreviewPlanilla();
 }
@@ -2541,7 +2618,7 @@ function renderEmpleados() {
       <td><div>${money(e.salarioHora)}</div>${num(e.ingresoFijo) > 0 ? `<div class="col-sub">+${money(e.ingresoFijo)} fijo</div>` : ''}</td>
       <td>${descuentosEmpleadoHtml(e)}</td>
       <td>${e.estado === 'activo' ? '<span class="badge badge-green">🟢 Activo</span>' : '<span class="badge badge-red">🔴 Inactivo</span>'}</td>
-      <td class="actions-cell">${empleadoAplicaSemana(e) ? (empleadoDisponiblePlanilla(e) ? `<button class="btn btn-success btn-sm" onclick="crearPlanillaDesdeEmpleado('${e.id}')">Crear planilla</button>` : '<span class="badge badge-blue">Ya registrada</span>') : ''}<button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
+      <td class="actions-cell">${empleadoAplicaSemana(e) ? (empleadoDisponiblePlanilla(e) ? `<button class="btn btn-success btn-sm" onclick="crearPlanillaDesdeEmpleado('${e.id}')">Crear planilla</button>` : '<span class="badge badge-blue">Ya registrada</span>') : ''}<button class="btn btn-primary btn-sm" onclick="abrirLiquidacionEmpleado('${e.id}')">Liquidar</button><button class="btn btn-amber btn-sm" onclick="editarEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="verHistorialEmpleado('${e.id}')">Historial</button><button class="btn btn-danger btn-sm" onclick="eliminarEmpleado('${e.id}')">Borrar</button></td>
     </tr>`).join('');
 }
 function clasesNombrePlanilla(p) {

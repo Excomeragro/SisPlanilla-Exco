@@ -53,6 +53,10 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 3 3 5-7"></path></svg>
       Historial laboral
     </button>
+    <button class="sidebar-btn" data-tab="liquidaciones" onclick="showTab('liquidaciones')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4"></path></svg>
+      Liquidaciones
+    </button>
     <button class="sidebar-btn" data-tab="ganancias-mensuales" onclick="showTab('ganancias-mensuales')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20M7 7h10M7 12h10M7 17h10"></path></svg>
       Ganancias mensuales
@@ -315,6 +319,36 @@
       <div class="card">
         <div class="card-header"><h2>Historial de pagos</h2><button class="btn btn-success btn-sm" onclick="imprimirHistorialSeleccionado()">Imprimir seleccionados</button><span class="badge badge-green" id="historial-count">0 pagos</span></div>
         <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="historial-select-all" onchange="toggleHistorialSeleccionado(this.checked)"></th><th>Fecha</th><th>Semana pagada</th><th>Devengado</th><th>ISSS</th><th>AFP</th><th>Renta</th><th>Otros desc.</th><th>Neto</th><th>Acciones</th></tr></thead><tbody id="historial-tbody"></tbody><tfoot id="historial-tfoot"></tfoot></table></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-liquidaciones">
+      <div class="page-head"><div><h1>Liquidaciones</h1><p>Calcula una indemnización referencial según el tipo de salida y el tiempo laborado.</p></div></div>
+      <div class="card">
+        <div class="card-header"><h2>Datos de liquidación</h2><span class="badge badge-amber">Cálculo referencial</span></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group span2"><label>Empleado</label><select id="liq-empleado" onchange="cargarLiquidacionEmpleado()"></select></div>
+            <div class="form-group"><label>Tipo de salida</label><select id="liq-tipo" onchange="actualizarTipoLiquidacion()"><option value="despido">Despido injustificado (30 días/año)</option><option value="renuncia">Renuncia voluntaria (15 días/año)</option><option value="personalizado">Porcentaje personalizado</option></select></div>
+            <div class="form-group"><label>Porcentaje aplicado</label><input type="number" id="liq-porcentaje" value="100" min="0" step="0.01" oninput="calcularLiquidacion()"></div>
+            <div class="form-group"><label>Fecha de ingreso</label><input type="date" id="liq-ingreso" onchange="calcularLiquidacion()"></div>
+            <div class="form-group"><label>Último día trabajado</label><input type="date" id="liq-salida" onchange="calcularLiquidacion()"></div>
+            <div class="form-group span2"><label>Salario mensual base ($)</label><input type="number" id="liq-salario-mensual" min="0" step="0.01" oninput="calcularLiquidacion()"><small class="field-help">Se propone desde el salario por hora: salario por hora × 8 × 30. Puedes editarlo.</small></div>
+          </div>
+          <div class="liquidacion-note">El cálculo no incluye vacaciones, aguinaldo, salarios pendientes ni otros conceptos de liquidación. Revisa los topes y condiciones aplicables antes de pagar.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Resultado</h2><button class="btn btn-primary btn-sm" onclick="calcularLiquidacion()">Calcular</button></div>
+        <div class="card-body">
+          <div class="liquidacion-summary">
+            <div><span>Empleado</span><strong id="liq-resumen-empleado">—</strong></div>
+            <div><span>Tiempo laborado</span><strong id="liq-tiempo">—</strong></div>
+            <div><span>Salario mensual base</span><strong id="liq-resumen-salario">$0.00</strong></div>
+            <div><span>Porcentaje aplicado</span><strong id="liq-resumen-porcentaje">0%</strong></div>
+            <div class="liquidacion-total"><span>Pago por indemnización</span><strong id="liq-total">$0.00</strong></div>
+          </div>
+        </div>
       </div>
     </section>
 
