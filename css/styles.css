@@ -774,6 +774,47 @@
   .receipt-actions { display:flex; gap:8px; padding: 0 24px 20px; justify-content:flex-end; align-items:center; }
   .payment-rounding-toggle { display:flex; align-items:center; gap:6px; margin-left:auto; color:#475569; font-size:11px; font-weight:700; white-space:nowrap; }
   .payment-rounding-toggle input { accent-color:#2563EB; }
+  #liquidacion-print { display:none; }
+  .liquidacion-print-page {
+    color:#111827;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:12px;
+    max-width:190mm;
+    margin:0 auto;
+  }
+  .liquidacion-print-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:2px solid #0F172A;
+    padding-bottom:10px;
+  }
+  .liquidacion-print-header h1 { margin:0; font-size:20px; letter-spacing:.2px; }
+  .liquidacion-print-header h2 { margin:5px 0 0; font-size:14px; }
+  .liquidacion-print-date { color:#475569; font-size:11px; padding-top:4px; }
+  .liquidacion-print-employee,
+  .liquidacion-print-summary {
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:10px;
+    margin-top:14px;
+  }
+  .liquidacion-print-summary { grid-template-columns:repeat(3, minmax(0, 1fr)); margin-top:8px; }
+  .liquidacion-print-employee div,
+  .liquidacion-print-summary div { min-width:0; }
+  .liquidacion-print-employee span,
+  .liquidacion-print-summary span { display:block; color:#64748B; font-size:10px; margin-bottom:3px; text-transform:uppercase; }
+  .liquidacion-print-employee strong,
+  .liquidacion-print-summary strong { display:block; overflow-wrap:anywhere; }
+  .liquidacion-print-table { width:100%; border-collapse:collapse; margin-top:20px; }
+  .liquidacion-print-table th,
+  .liquidacion-print-table td { border:1px solid #94A3B8; padding:8px 10px; }
+  .liquidacion-print-table th { background:#E2E8F0; text-align:left; font-size:11px; }
+  .liquidacion-print-table td:last-child { text-align:right; white-space:nowrap; }
+  .liquidacion-print-table .liquidacion-print-total td { background:#ECFDF5; font-size:15px; font-weight:800; }
+  .liquidacion-print-note { color:#475569; font-size:10px; margin:14px 0 0; }
+  .liquidacion-print-signatures { display:grid; grid-template-columns:1fr 1fr; gap:45px; margin-top:62px; }
+  .liquidacion-print-signatures div { border-top:1px solid #111827; padding-top:7px; text-align:center; }
   #toast {
     position: fixed;
     right: 24px;
@@ -854,6 +895,11 @@
     body.printing-cash-report .cash-summary-table { max-width:175mm !important; font-size:14px !important; }
     body.printing-cash-report .cash-summary-table th,
     body.printing-cash-report .cash-summary-table td { padding:8px 10px !important; line-height:1.25 !important; }
+    body.printing-liquidacion > *:not(#liquidacion-print) { display:none !important; }
+    body.printing-liquidacion > #liquidacion-print { display:block !important; }
+    body.printing-liquidacion { background:#fff !important; display:block !important; }
+    body.printing-liquidacion .liquidacion-print-page,
+    body.printing-liquidacion .liquidacion-print-page * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
   @media (max-width: 980px) {
     .main-wrap { flex-direction: column; }

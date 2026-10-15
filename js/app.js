@@ -2318,6 +2318,82 @@ function imprimirDetallePlanilla() {
   window.print();
 }
 window.addEventListener('afterprint', limpiarModoImpresionDetalle);
+function limpiarModoImpresionLiquidacion() {
+  document.body.classList.remove('printing-liquidacion');
+  document.getElementById('liquidacion-page-style')?.remove();
+  const contenedor = document.getElementById('liquidacion-print');
+  if (contenedor) contenedor.innerHTML = '';
+}
+function imprimirLiquidacion() {
+  const datos = calcularLiquidacion();
+  if (!datos.empleado) {
+    toast('Selecciona un empleado para imprimir la liquidación.');
+    return;
+  }
+  const tipoTexto = datos.tipo === 'despido'
+    ? 'Despido injustificado'
+    : datos.tipo === 'renuncia' ? 'Renuncia voluntaria' : 'Porcentaje personalizado';
+  const tipoVacacion = document.getElementById('liq-vacacion-tipo')?.value || 'proporcional';
+  const periodos = Math.max(1, Math.min(3, Math.floor(num(document.getElementById('liq-vacacion-periodos')?.value) || 1)));
+  const vacacionTexto = tipoVacacion === 'completa'
+    ? `Completa (${periodos} período${periodos === 1 ? '' : 's'})`
+    : tipoVacacion === 'ninguna' ? 'No incluida' : 'Proporcional del período actual';
+  const fechaTexto = valor => valor ? new Date(`${valor}T00:00:00`).toLocaleDateString('es-SV') : '—';
+  const emp = datos.empleado;
+  const contenedor = document.getElementById('liquidacion-print');
+  if (!contenedor) return;
+  contenedor.innerHTML = `
+    <div class="liquidacion-print-page">
+      <header class="liquidacion-print-header">
+        <div>
+          <h1>EXCOMERCAFE S.A. DE C.V.</h1>
+          <h2>LIQUIDACIÓN LABORAL</h2>
+        </div>
+        <div class="liquidacion-print-date">Fecha de emisión: ${fechaTexto(todayIso())}</div>
+      </header>
+      <section class="liquidacion-print-employee">
+        <div><span>Empleado</span><strong>${esc(emp.nombre || '—')}</strong></div>
+        <div><span>DUI</span><strong>${esc(emp.dui || '—')}</strong></div>
+        <div><span>Cargo</span><strong>${esc(emp.cargo || '—')}</strong></div>
+        <div><span>Área</span><strong>${esc(emp.area || emp.departamento || '—')}</strong></div>
+      </section>
+      <section class="liquidacion-print-summary">
+        <div><span>Fecha de ingreso</span><strong>${fechaTexto(document.getElementById('liq-ingreso')?.value)}</strong></div>
+        <div><span>Último día trabajado</span><strong>${fechaTexto(document.getElementById('liq-salida')?.value)}</strong></div>
+        <div><span>Tiempo laborado</span><strong>${esc(datos.tiempo.texto)}</strong></div>
+        <div><span>Salario mensual base</span><strong>${money(datos.salarioMensual)}</strong></div>
+        <div><span>Tipo de salida</span><strong>${tipoTexto}</strong></div>
+        <div><span>Porcentaje aplicado</span><strong>${datos.porcentaje.toFixed(2)}%</strong></div>
+      </section>
+      <table class="liquidacion-print-table">
+        <thead><tr><th>Concepto</th><th>Detalle</th><th>Importe</th></tr></thead>
+        <tbody>
+          <tr><td>Indemnización</td><td>${tipoTexto} · ${datos.tiempo.anios.toFixed(2)} años</td><td>${money(datos.indemnizacion)}</td></tr>
+          <tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr>
+          <tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr>
+          <tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr>
+          <tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr>
+          <tr><td>Aguinaldo proporcional</td><td>Según antigüedad y días acumulados</td><td>${money(datos.aguinaldo)}</td></tr>
+          <tr class="liquidacion-print-total"><td colspan="2">TOTAL DE LIQUIDACIÓN</td><td>${money(datos.total)}</td></tr>
+        </tbody>
+      </table>
+      <p class="liquidacion-print-note">Cálculo referencial. Revisar topes, descuentos y demás prestaciones aplicables antes de realizar el pago.</p>
+      <section class="liquidacion-print-signatures">
+        <div>Firma del empleado</div>
+        <div>Representante de la empresa</div>
+      </section>
+    </div>`;
+  document.body.classList.add('printing-liquidacion');
+  let style = document.getElementById('liquidacion-page-style');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'liquidacion-page-style';
+    document.head.appendChild(style);
+  }
+  style.textContent = '@page { size: letter portrait; margin: 12mm; }';
+  window.print();
+}
+window.addEventListener('afterprint', limpiarModoImpresionLiquidacion);
 document.getElementById('payroll-detail-overlay').addEventListener('click', e => { if (e.target.id === 'payroll-detail-overlay') cerrarDetallePlanilla(); });
 function generarCopiaBoleta(p, boleta, vacia = false) {
   const emp = vacia ? {} : p.empleadoSnapshot;

@@ -343,7 +343,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>Resultado</h2><button class="btn btn-primary btn-sm" onclick="calcularLiquidacion()">Calcular</button></div>
+        <div class="card-header"><h2>Resultado</h2><div class="btn-row"><button class="btn btn-primary btn-sm" onclick="calcularLiquidacion()">Calcular</button><button class="btn btn-success btn-sm" onclick="imprimirLiquidacion()">Imprimir liquidación</button></div></div>
         <div class="card-body">
           <div class="liquidacion-summary">
             <div><span>Empleado</span><strong id="liq-resumen-empleado">—</strong></div>
@@ -541,6 +541,7 @@
     <div class="receipt-actions"><label class="payment-rounding-toggle"><input type="checkbox" id="receipt-aproximar-pago" onchange="cambiarAproximacionPago(this.checked)"> Aproximar pagos a $0.05</label><button class="btn btn-ghost btn-sm" onclick="cerrarRecibo()">Cerrar</button><button class="btn btn-primary btn-sm" onclick="imprimirRecibo()">Imprimir</button></div>
   </div>
 </div>
+<div id="liquidacion-print" aria-hidden="true"></div>
 <div id="toast">Listo</div>
 
 <script src="js/initial-data.js"></script>
