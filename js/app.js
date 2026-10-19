@@ -2626,7 +2626,7 @@ function cargarLiquidacionEmpleado() {
   const salario = document.getElementById('liq-salario-mensual');
   if (ingreso) ingreso.value = emp.fechaIngreso || EMPLOYEE_START_DATE;
   if (salida) salida.value = emp.estado === 'inactivo' && emp.fechaSalida ? emp.fechaSalida : todayIso();
-  if (salario) salario.value = red(num(emp.salarioHora) * 8 * 30).toFixed(2);
+  if (salario) salario.value = (num(emp.salarioMensualAguinaldo) > 0 ? num(emp.salarioMensualAguinaldo) : 408.80).toFixed(2);
   calcularLiquidacion();
 }
 function calcularLiquidacion() {
