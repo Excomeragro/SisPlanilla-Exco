@@ -2343,8 +2343,8 @@ function imprimirLiquidacion() {
   const filas = datos.modo === 'vacacion'
     ? `<tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr><tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr><tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr><tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr>`
     : datos.modo === 'aguinaldo'
-      ? `<tr><td>Aguinaldo proporcional</td><td>Según antigüedad y días acumulados</td><td>${money(datos.aguinaldo)}</td></tr>`
-      : `<tr><td>Indemnización</td><td>${tipoTexto} · ${datos.tiempo.anios.toFixed(2)} años</td><td>${money(datos.indemnizacion)}</td></tr><tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr><tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr><tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr><tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr><tr><td>Aguinaldo proporcional</td><td>Según antigüedad y días acumulados</td><td>${money(datos.aguinaldo)}</td></tr>`;
+      ? `<tr><td>Aguinaldo proporcional</td><td>Período del 12 de diciembre al 11 de diciembre</td><td>${money(datos.aguinaldo)}</td></tr>`
+      : `<tr><td>Indemnización</td><td>${tipoTexto} · ${datos.tiempo.anios.toFixed(2)} años</td><td>${money(datos.indemnizacion)}</td></tr><tr><td>Vacación bruta</td><td>${vacacionTexto}</td><td>${money(datos.vacacionBruta)}</td></tr><tr><td>ISSS sobre vacación</td><td>${document.getElementById('liq-vacacion-isss')?.checked ? '3%' : 'No aplicado'}</td><td>-${money(datos.isssVacacion)}</td></tr><tr><td>AFP sobre vacación</td><td>${document.getElementById('liq-vacacion-afp')?.checked ? '7.25%' : 'No aplicado'}</td><td>-${money(datos.afpVacacion)}</td></tr><tr><td>Vacación neta</td><td>Vacación después de descuentos</td><td>${money(datos.vacacionNeta)}</td></tr><tr><td>Aguinaldo proporcional</td><td>Período del 12 de diciembre al 11 de diciembre</td><td>${money(datos.aguinaldo)}</td></tr>`;
   const contenedor = document.getElementById('liquidacion-print');
   if (!contenedor) return;
   contenedor.innerHTML = `
@@ -2591,6 +2591,13 @@ function inicioPeriodoVacacion(fechaIngreso, fechaSalida) {
   const inicio = aniversario > ingreso ? aniversario : ingreso;
   return iso(inicio);
 }
+function inicioPeriodoAguinaldo(fechaSalida) {
+  const salida = fechaLocal(fechaSalida);
+  if (!salida) return '';
+  let inicio = new Date(salida.getFullYear(), 11, 12);
+  if (salida < inicio) inicio = new Date(salida.getFullYear() - 1, 11, 12);
+  return iso(inicio);
+}
 function diasAguinaldoPorAntiguedad(anios) {
   if (anios >= 10) return 21;
   if (anios >= 3) return 19;
@@ -2642,8 +2649,9 @@ function calcularLiquidacion() {
   const isssVacacion = document.getElementById('liq-vacacion-isss')?.checked ? vacacionBruta * 0.03 : 0;
   const afpVacacion = document.getElementById('liq-vacacion-afp')?.checked ? vacacionBruta * 0.0725 : 0;
   const vacacionNeta = vacacionBruta - isssVacacion - afpVacacion;
-  const inicioAguinaldo = ingreso && salida ? `${fechaLocal(salida).getFullYear()}-01-01` : '';
-  const diasAguinaldo = diasIncluidos(inicioAguinaldo > ingreso ? inicioAguinaldo : ingreso, salida);
+  const inicioAguinaldo = inicioPeriodoAguinaldo(salida);
+  const inicioCalculoAguinaldo = inicioAguinaldo && ingreso > inicioAguinaldo ? ingreso : inicioAguinaldo;
+  const diasAguinaldo = diasIncluidos(inicioCalculoAguinaldo, salida);
   const aguinaldoDias = diasAguinaldoPorAntiguedad(tiempo.anios);
   const aguinaldo = salarioDiario * aguinaldoDias * Math.min(diasAguinaldo / 365, 1);
   const total = totalModoLiquidacion({ indemnizacion, vacacionNeta, aguinaldo });
