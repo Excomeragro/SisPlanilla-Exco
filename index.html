@@ -158,7 +158,7 @@
             </div>
             <div class="mass-quick-controls"><label class="inline-check"><input type="checkbox" id="m-usar-orden-asistencia" onchange="cambiarOrdenAsistencia(this.checked)"> Usar orden de asistencia</label><button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('m-importar-asistencia').click()">Importar asistencia</button><input type="file" id="m-importar-asistencia" accept=".xlsx,.xls,.csv" hidden onchange="importarHorasAsistencia(this.files[0])"><div class="form-group mass-quick-search"><label>Buscar</label><input type="search" id="m-rapida-buscar" placeholder="Nombre o DUI" oninput="filtrarPlanillaMasivaRapida()"></div></div>
           </div>
-          <div class="mass-color-legend"><span class="legend-extra-diurna">Extra diurna</span><span class="legend-extra-nocturna">Extra nocturna</span><span class="legend-asueto">Asueto</span><span class="legend-domingo">Domingo</span><span class="legend-descuento">Permiso / falta / descuento</span></div>
+          <div class="mass-color-legend"><span class="legend-extra-diurna">Extra diurna</span><span class="legend-extra-nocturna">Extra nocturna</span><span class="legend-asueto">Asueto</span><span class="legend-domingo">Domingo</span><span class="legend-descuento">Permiso / falta / descuento</span><span class="legend-import-doubt">Revisar lectura</span></div>
           <div class="table-wrap mass-quick-wrap">
             <table class="mass-quick-table">
               <thead>

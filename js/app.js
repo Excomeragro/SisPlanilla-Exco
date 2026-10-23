@@ -26,6 +26,7 @@ let aplicandoEstadoRemoto = false;
 let guardadoSupabaseTimer = null;
 let ultimoEstadoEnviado = '';
 let conexionSupabaseId = 0;
+let asistenciaDudas = {};
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function num(v) {
@@ -124,7 +125,7 @@ function iso(d) {
 }
 function todayIso() { return iso(new Date()); }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false, usarOrdenAsistencia: false, usarOrdenAsistenciaDetalle: false }; }
+function estadoVacio() { return { empleados: [], planillas: [], historialPagos: [], boletas: [], ajustesPlanillaMasiva: {}, asistenciaDudas: {}, empleadosExtrasFrecuentes: [], aproximarPagos: false, usarOrdenAsistencia: false, usarOrdenAsistenciaDetalle: false }; }
 function normalizarEstado(raw) {
   const base = estadoVacio();
   if (Array.isArray(raw)) raw = { planillas: raw };
@@ -134,6 +135,7 @@ function normalizarEstado(raw) {
   base.historialPagos = (raw.historialPagos || []).map(normalizarPago);
   base.boletas = (raw.boletas || []).map(b => ({ ...b, id: b.id || uid() }));
   base.ajustesPlanillaMasiva = raw.ajustesPlanillaMasiva && typeof raw.ajustesPlanillaMasiva === 'object' ? raw.ajustesPlanillaMasiva : {};
+  base.asistenciaDudas = raw.asistenciaDudas && typeof raw.asistenciaDudas === 'object' ? raw.asistenciaDudas : {};
   base.aproximarPagos = !!raw.aproximarPagos;
   base.usarOrdenAsistencia = !!raw.usarOrdenAsistencia;
   base.usarOrdenAsistenciaDetalle = !!raw.usarOrdenAsistenciaDetalle;
@@ -183,7 +185,9 @@ function normalizarEmpleado(e) {
 }
 function corregirHoraTreinta(value) {
   const horas = num(value);
-  return Math.abs(horas - 0.3) < 0.000001 ? 0.5 : horas;
+  const horasEnteras = Math.floor(horas);
+  const minutosComoDecimal = Math.round((horas - horasEnteras) * 100);
+  return minutosComoDecimal === 30 ? horasEnteras + 0.5 : horas;
 }
 function corregirHorasTreinta(horas) {
   if (!horas || typeof horas !== 'object') return horas;
@@ -1024,6 +1028,7 @@ function combinarAjustesMasivos(preferido, respaldo) {
 function cargarAjustesMasivosGuardados() {
   const { inicio } = semanaMasivaActual();
   const guardados = state.ajustesPlanillaMasiva?.[inicio];
+  asistenciaDudas = { ...(state.asistenciaDudas?.[inicio] || {}) };
   const recuperados = {};
   if (guardados && typeof guardados === 'object') {
     Object.entries(guardados).forEach(([id, ajuste]) => {
@@ -1045,7 +1050,9 @@ function guardarAjustesMasivosSemana(programar = true) {
   const { inicio } = semanaMasivaActual();
   if (!inicio) return;
   if (!state.ajustesPlanillaMasiva || typeof state.ajustesPlanillaMasiva !== 'object') state.ajustesPlanillaMasiva = {};
+  if (!state.asistenciaDudas || typeof state.asistenciaDudas !== 'object') state.asistenciaDudas = {};
   state.ajustesPlanillaMasiva[inicio] = JSON.parse(JSON.stringify(ajustesPlanillaMasiva));
+  state.asistenciaDudas[inicio] = { ...asistenciaDudas };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
   if (programar) programarGuardadoSupabase();
 }
@@ -1309,14 +1316,17 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const clase = claseAjusteMasivoRapido(campo, dia);
   const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
   const tipo = esDias ? 'number' : 'text';
-  const ayuda = '0';
+  const ayuda = esDias ? '0' : '0, 0.25, 0.50 o 0.75';
   const validar = esDias ? '' : ' onchange="validarHoraCampo(this)"';
-  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}>`;
+  const duda = tieneDudaAsistencia(id, campo, dia) ? ' mass-import-doubt' : '';
+  const titulo = duda ? ' title="Revisar lectura de asistencia"' : '';
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}${duda}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}${titulo}>`;
 }
 function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   const emp = empleadoPorId(id);
   if (!emp) return;
   const ajuste = ajustesPlanillaMasiva[id] || ajusteMasivoVacio();
+  delete asistenciaDudas[claveDudaAsistencia(id, campo, dia)];
   if (dia) ajuste[campo][dia] = num(valor);
   else ajuste[campo] = campo === 'diasSinPermiso' || campo === 'diasIncapacidad' ? Math.max(0, Math.floor(num(valor))) : num(valor);
   if (tieneValoresAjusteMasivo(ajuste)) ajustesPlanillaMasiva[id] = ajuste;
@@ -1342,17 +1352,42 @@ function normalizarNombreAsistencia(nombre) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+function claveDudaAsistencia(id, campo, dia) {
+  return `${id}|${campo}|${dia || 'total'}`;
+}
+function tieneDudaAsistencia(id, campo, dia) {
+  return !!asistenciaDudas[claveDudaAsistencia(id, campo, dia)];
+}
+function coincidenciaDudosaAsistencia(nombre, empleado) {
+  if (!empleado) return true;
+  const clave = normalizarNombreAsistencia(nombre);
+  const nombreEmpleado = normalizarNombreAsistencia(empleado.nombre);
+  return clave !== nombreEmpleado;
+}
+function horaImportadaValida(valor) {
+  const horas = num(valor);
+  if (horas <= 0) return true;
+  const minutos = Math.round((horas - Math.floor(horas)) * 100);
+  return minutos === 0 || minutos === 25 || minutos === 50 || minutos === 75;
+}
 function valorHoraImportada(valor) {
-  if (typeof valor === 'number') return Number.isFinite(valor) && valor > 0 ? valor : 0;
+  if (typeof valor === 'number') {
+    const horas = corregirHoraTreinta(valor);
+    return { valor: Number.isFinite(horas) && horas > 0 ? horas : 0, dudosa: !horaImportadaValida(horas) };
+  }
   const texto = String(valor ?? '').trim().replace(',', '.');
-  if (!texto) return 0;
+  if (!texto) return { valor: 0, dudosa: false };
   const partes = texto.match(/^(\d+(?:\.\d+)?):(\d{1,2})$/);
   if (partes) {
     const minutos = Number(partes[2]);
-    return minutos < 60 ? Number(partes[1]) + minutos / 60 : 0;
+    return { valor: minutos < 60 ? Number(partes[1]) + minutos / 60 : 0, dudosa: minutos >= 60 };
   }
   const resultado = Number.parseFloat(texto.replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(resultado) && resultado > 0 ? resultado : 0;
+  const corregido = corregirHoraTreinta(resultado);
+  return {
+    valor: Number.isFinite(corregido) && corregido > 0 ? corregido : 0,
+    dudosa: !horaImportadaValida(corregido) || !/^\d+(?:\.\d{1,2})?$/.test(texto)
+  };
 }
 function empleadoDesdeFilaAsistencia(nombre, empleados) {
   const clave = normalizarNombreAsistencia(nombre);
@@ -1429,15 +1464,21 @@ async function importarHorasAsistencia(archivo) {
       const empleado = empleadoDesdeFilaAsistencia(fila[0], empleados);
       if (!empleado) {
         const nombre = String(fila[0] ?? '').trim();
-        if (nombre && horas.some(valor => valor > 0)) noEncontrados.push(nombre);
+        if (nombre && horas.some(item => item.valor > 0)) noEncontrados.push(nombre);
         return;
       }
-      if (!horas.some(valor => valor > 0)) return;
+      if (!horas.some(item => item.valor > 0)) return;
       const ajuste = ajustesPlanillaMasiva[empleado.id] || ajusteMasivoVacio();
-      horas.forEach((valor, indice) => {
-        if (valor <= 0) return;
-        if (dias[indice] === 'domingo') ajuste.hDomingo = valor;
-        else ajuste.extraDias[dias[indice]] = valor;
+      const nombreDudoso = coincidenciaDudosaAsistencia(fila[0], empleado);
+      horas.forEach((item, indice) => {
+        if (item.valor <= 0) return;
+        const dia = dias[indice];
+        const campo = dia === 'domingo' ? 'hDomingo' : 'extraDias';
+        if (dia === 'domingo') ajuste.hDomingo = item.valor;
+        else ajuste.extraDias[dia] = item.valor;
+        const clave = claveDudaAsistencia(empleado.id, campo, dia === 'domingo' ? null : dia);
+        if (nombreDudoso || item.dudosa) asistenciaDudas[clave] = true;
+        else delete asistenciaDudas[clave];
       });
       ajustesPlanillaMasiva[empleado.id] = ajuste;
       importados += 1;
