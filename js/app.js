@@ -1551,12 +1551,15 @@ async function importarHorasAsistenciaFoto(archivo) {
           horas.push({ ...valores[mejor], indice, distancia });
         }
       });
-      if (!horas.length) {
+      // Si la hoja tiene encabezados Extra pero las celdas estan vacias, no
+      // confundimos las horas de entrada/salida con horas extra.
+      if (!horas.length && !encabezadosFila.length) {
         valores.slice(-dias.length).forEach((item, indice) => horas.push({ ...item, indice, distancia: 999 }));
       }
       const dudaFila = !encabezadosFila.length || coincidenciaDudosaAsistencia(texto, empleado);
       const ajuste = ajustesPlanillaMasiva[empleado.id] || ajusteMasivoVacio();
       const horasEntradaSalida = calcularHorasEntradaSalidaOCR(valores, usados);
+      if (!horas.length && horasEntradaSalida.horas <= 0) return;
       if (horasEntradaSalida.horas > 0) {
         ajuste.hOrdinarias = horasEntradaSalida.horas;
         if (dudaFila || horasEntradaSalida.pares < 5) {
@@ -1583,6 +1586,9 @@ async function importarHorasAsistenciaFoto(archivo) {
 
     guardarAjustesMasivosSemana(false);
     renderPlanillaMasiva();
+    // La importacion debe reflejarse tambien en Planilla semanal, no solo en
+    // la tabla de carga rapida. Se guarda sin mostrar avisos repetidos.
+    if (importados) crearPlanillasMasivas(false, false);
     solicitarSincronizacion();
     actualizarEstadoImportacion(`Foto leída: ${importados} empleados. ${dudas ? `${dudas} valores para revisar en amarillo.` : 'Sin dudas detectadas.'}`);
     toast(`Leídos ${importados} empleados desde la foto.${dudas ? ` Revisa ${dudas} valores marcados en amarillo.` : ''}`, 7000);
@@ -1964,7 +1970,7 @@ function fusionarDatosMasivosConPlanilla(datos, existente) {
   datos.hExtraNocturna = totalHorasExtraLaboral(datos.extraNocturnasDias);
   return datos;
 }
-function crearPlanillasMasivas() {
+function crearPlanillasMasivas(mostrarAviso = true, preguntarSincronizacion = true) {
   const { inicio, fin } = semanaMasivaActual();
   if (!inicio || !fin) { toast('Selecciona la semana.'); return; }
   const empleados = empleadosPlanillaMasiva();
@@ -1981,7 +1987,7 @@ function crearPlanillasMasivas() {
   });
   document.getElementById('p-fecha-inicio').value = inicio;
   document.getElementById('p-fecha-fin').value = fin;
-  guardarEstado(true, true);
+  guardarEstado(mostrarAviso, preguntarSincronizacion);
 }
 function crearBoletasSemanaMasiva() {
   const { inicio, fin } = semanaMasivaActual();
