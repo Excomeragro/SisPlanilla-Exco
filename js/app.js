@@ -1567,6 +1567,10 @@ async function importarHorasAsistenciaFoto(archivo) {
 async function importarHorasAsistencia(archivo) {
   const entrada = document.getElementById('m-importar-asistencia');
   if (!archivo) return;
+  if (typeof archivo.length === 'number' && !archivo.name) {
+    for (const elemento of Array.from(archivo)) await importarHorasAsistencia(elemento);
+    return;
+  }
   const esFoto = /\.(jpg|jpeg|png|webp)$/i.test(archivo.name || '') || String(archivo.type || '').startsWith('image/');
   if (esFoto) {
     try { await importarHorasAsistenciaFoto(archivo); }
