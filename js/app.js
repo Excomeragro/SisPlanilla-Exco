@@ -1455,6 +1455,22 @@ function actualizarEstadoImportacion(texto) {
   const estado = document.getElementById('m-importar-asistencia-estado');
   if (estado) estado.textContent = texto;
 }
+async function prepararImagenAsistencia(archivo, grados) {
+  const bitmap = await createImageBitmap(archivo);
+  const canvas = document.createElement('canvas');
+  const gira = Math.abs(grados) % 180 !== 0;
+  canvas.width = gira ? bitmap.height : bitmap.width;
+  canvas.height = gira ? bitmap.width : bitmap.height;
+  const contexto = canvas.getContext('2d');
+  contexto.translate(canvas.width / 2, canvas.height / 2);
+  contexto.rotate(grados * Math.PI / 180);
+  contexto.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+  bitmap.close?.();
+  return canvas;
+}
+function filasLegiblesOCR(resultado, empleados) {
+  return (resultado.data.lines || []).filter(linea => empleadoDesdeTextoOCR(String(linea.text || ''), empleados)).length;
+}
 async function importarHorasAsistenciaFoto(archivo) {
   if (!window.Tesseract) {
     toast('No se pudo cargar el lector de fotos. Revisa tu conexión e inténtalo de nuevo.', 6000);
@@ -1462,15 +1478,23 @@ async function importarHorasAsistenciaFoto(archivo) {
   }
   actualizarEstadoImportacion('Leyendo la foto... espera un momento.');
   try {
-    const resultado = await window.Tesseract.recognize(archivo, 'spa', {
+    const empleados = empleadosPlanillaMasiva();
+    let resultado = await window.Tesseract.recognize(await prepararImagenAsistencia(archivo, 90), 'spa', {
       logger: mensaje => {
         if (mensaje.status === 'recognizing text' && Number.isFinite(mensaje.progress)) {
           actualizarEstadoImportacion(`Leyendo la foto... ${Math.round(mensaje.progress * 100)}%`);
         }
       }
     });
-    const empleados = empleadosPlanillaMasiva();
+    if (filasLegiblesOCR(resultado, empleados) === 0) {
+      actualizarEstadoImportacion('Ajustando la orientación de la foto...');
+      resultado = await window.Tesseract.recognize(await prepararImagenAsistencia(archivo, 270), 'spa');
+    }
     const dias = ['viernes', 'sabado', 'domingo', 'lunes', 'martes', 'miercoles', 'jueves'];
+    const encabezadosExtra = (resultado.data.words || [])
+      .filter(palabra => normalizarNombreAsistencia(palabra.text).includes('extra'))
+      .map(palabra => (Number(palabra.bbox?.x0 || 0) + Number(palabra.bbox?.x1 || 0)) / 2)
+      .sort((a, b) => a - b);
     let importados = 0;
     let dudas = 0;
     const noEncontrados = [];
@@ -1480,21 +1504,46 @@ async function importarHorasAsistenciaFoto(archivo) {
       const texto = String(linea.text || '').trim();
       const empleado = empleadoDesdeTextoOCR(texto, empleados);
       if (!empleado) return;
-      const palabras = (linea.words || []).map(palabra => String(palabra.text || '').trim());
-      const valores = palabras
-        .filter(palabra => /^\d{1,2}(?:[.:]\d{1,2})?$/.test(palabra))
-        .map(palabra => valorHoraImportada(palabra));
-      if (!valores.length) return;
-      const horas = valores.length > dias.length ? valores.slice(-dias.length) : valores;
-      const dudaFila = valores.length !== dias.length || coincidenciaDudosaAsistencia(texto, empleado);
+      const palabras = (linea.words || []).map(palabra => ({
+        texto: String(palabra.text || '').trim(),
+        x: (Number(palabra.bbox?.x0 || 0) + Number(palabra.bbox?.x1 || 0)) / 2
+      })).filter(palabra => /^\d{1,2}(?:[.:]\d{1,2})?$/.test(palabra.text));
+      if (!palabras.length) return;
+      const valores = palabras.map(palabra => ({ ...valorHoraImportada(palabra.text), x: palabra.x }));
+      const lineaX = linea.words?.length ? {
+        min: Math.min(...linea.words.map(p => Number(p.bbox?.x0 || 0))),
+        max: Math.max(...linea.words.map(p => Number(p.bbox?.x1 || 0)))
+      } : null;
+      const encabezadosFila = encabezadosExtra.filter(x => !lineaX || (x >= lineaX.min - 40 && x <= lineaX.max + 40));
+      const horas = [];
+      const usados = new Set();
+      encabezadosFila.slice(0, dias.length).forEach((x, indice) => {
+        let mejor = -1;
+        let distancia = Infinity;
+        valores.forEach((item, posicion) => {
+          const diferencia = Math.abs(item.x - x);
+          if (!usados.has(posicion) && diferencia < distancia) {
+            mejor = posicion;
+            distancia = diferencia;
+          }
+        });
+        if (mejor >= 0 && distancia <= 55) {
+          usados.add(mejor);
+          horas.push({ ...valores[mejor], indice, distancia });
+        }
+      });
+      if (!horas.length) {
+        valores.slice(-dias.length).forEach((item, indice) => horas.push({ ...item, indice, distancia: 999 }));
+      }
+      const dudaFila = !encabezadosFila.length || coincidenciaDudosaAsistencia(texto, empleado);
       const ajuste = ajustesPlanillaMasiva[empleado.id] || ajusteMasivoVacio();
-      horas.forEach((item, indice) => {
+      horas.forEach(item => {
         if (item.valor <= 0) return;
-        const dia = dias[indice];
+        const dia = dias[item.indice];
         const campo = dia === 'domingo' ? 'hDomingo' : 'extraDias';
         if (dia === 'domingo') ajuste.hDomingo = item.valor;
         else ajuste.extraDias[dia] = item.valor;
-        if (dudaFila || item.dudosa) {
+        if (dudaFila || item.dudosa || item.distancia > 30) {
           asistenciaDudas[claveDudaAsistencia(empleado.id, campo, dia === 'domingo' ? null : dia)] = true;
           dudas += 1;
         }
