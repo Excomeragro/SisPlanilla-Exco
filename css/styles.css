@@ -420,6 +420,11 @@
     color: #92400E;
     border-left: 4px solid #F59E0B;
   }
+  .mass-name-cell.mass-name-import-doubt {
+    background: #FEF3C7 !important;
+    border-left: 4px solid #D97706;
+  }
+  .mass-import-status { color:#92400E; }
   input.visual-discount-active,
   input.visual-no-discount {
     font-weight: 700;

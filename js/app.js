@@ -1012,6 +1012,7 @@ function ajusteMasivoDesdePlanilla(p) {
 function combinarAjustesMasivos(preferido, respaldo) {
   const resultado = ajusteMasivoVacio();
   const tomar = (a, b) => num(a) > 0 ? num(a) : num(b);
+  resultado.hOrdinarias = tomar(preferido?.hOrdinarias, respaldo?.hOrdinarias);
   EXTRA_DIAS.forEach(dia => {
     resultado.extraDias[dia.key] = tomar(preferido?.extraDias?.[dia.key], respaldo?.extraDias?.[dia.key]);
     resultado.extraNocturnasDias[dia.key] = tomar(preferido?.extraNocturnasDias?.[dia.key], respaldo?.extraNocturnasDias?.[dia.key]);
@@ -1140,6 +1141,7 @@ function setSemanaMasivaActual() {
 }
 function ajusteMasivoVacio() {
   return {
+    hOrdinarias: 0,
     extraDias: extraDiasVacio(),
     extraNocturnasDias: extraDiasVacio(),
     hAsueto: 0,
@@ -1153,7 +1155,8 @@ function ajusteMasivoVacio() {
 }
 function tieneValoresAjusteMasivo(ajuste) {
   if (!ajuste) return false;
-  return totalHorasExtraLaboral(ajuste.extraDias) > 0 ||
+  return num(ajuste.hOrdinarias) > 0 ||
+    totalHorasExtraLaboral(ajuste.extraDias) > 0 ||
     totalHorasExtraLaboral(ajuste.extraNocturnasDias) > 0 ||
     num(ajuste.extraDias?.domingo) > 0 ||
     num(ajuste.extraNocturnasDias?.domingo) > 0 ||
@@ -1285,6 +1288,7 @@ function clasesNombreMasivo(emp) {
 function resumenHorasAjusteMasivo(ajuste) {
   if (!tieneValoresAjusteMasivo(ajuste)) return '';
   const partes = [];
+  if (num(ajuste.hOrdinarias) > 0) partes.push(`Ordinarias ${num(ajuste.hOrdinarias).toFixed(2)}h`);
   const diurnas = totalHorasExtraLaboral(ajuste.extraDias);
   const nocturnas = totalHorasExtraLaboral(ajuste.extraNocturnasDias);
   if (diurnas > 0) partes.push(`D ${diurnas.toFixed(2)}h`);
@@ -1369,6 +1373,21 @@ function horaImportadaValida(valor) {
   if (horas <= 0) return true;
   const minutos = Math.round((horas - Math.floor(horas)) * 100);
   return minutos === 0 || minutos === 25 || minutos === 50 || minutos === 75;
+}
+function calcularHorasEntradaSalidaOCR(valores, usados) {
+  const tiempos = valores.filter((_, posicion) => !usados.has(posicion)).sort((a, b) => a.x - b.x);
+  let horas = 0;
+  let pares = 0;
+  for (let indice = 0; indice + 1 < tiempos.length; indice += 2) {
+    const entrada = tiempos[indice].valor;
+    let salida = tiempos[indice + 1].valor;
+    if (salida <= entrada) salida += 12;
+    const jornada = salida - entrada;
+    if (jornada <= 0 || jornada > 16) continue;
+    horas += jornada > 6 ? jornada - 1 : jornada;
+    pares += 1;
+  }
+  return { horas: Math.round(horas * 100) / 100, pares };
 }
 function valorHoraImportada(valor) {
   if (typeof valor === 'number') {
@@ -1537,6 +1556,16 @@ async function importarHorasAsistenciaFoto(archivo) {
       }
       const dudaFila = !encabezadosFila.length || coincidenciaDudosaAsistencia(texto, empleado);
       const ajuste = ajustesPlanillaMasiva[empleado.id] || ajusteMasivoVacio();
+      const horasEntradaSalida = calcularHorasEntradaSalidaOCR(valores, usados);
+      if (horasEntradaSalida.horas > 0) {
+        ajuste.hOrdinarias = horasEntradaSalida.horas;
+        if (dudaFila || horasEntradaSalida.pares < 5) {
+          asistenciaDudas[claveDudaAsistencia(empleado.id, 'hOrdinarias', null)] = true;
+          dudas += 1;
+        } else {
+          delete asistenciaDudas[claveDudaAsistencia(empleado.id, 'hOrdinarias', null)];
+        }
+      }
       horas.forEach(item => {
         if (item.valor <= 0) return;
         const dia = dias[item.indice];
@@ -1677,7 +1706,8 @@ function renderPlanillaMasivaRapida() {
       ? `<td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
       : `<td>${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
     ).join('');
-    return `<tr><td class="mass-name-cell"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} · ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}</td><td class="mass-order-cell">${num(emp.ordenAsistencia) > 0 ? esc(emp.ordenAsistencia) : '—'}</td>
+    const dudaAsistencia = tieneDudaAsistencia(id, 'hOrdinarias', null);
+    return `<tr><td class="mass-name-cell${dudaAsistencia ? ' mass-name-import-doubt' : ''}"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} · ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}${dudaAsistencia ? '<div class="mass-saved-status mass-import-status">Revisar horas ordinarias</div>' : ''}</td><td class="mass-order-cell">${num(emp.ordenAsistencia) > 0 ? esc(emp.ordenAsistencia) : '—'}</td>
       ${celdasDias}
       <td>${inputAjusteMasivoRapido(id, 'hAsueto', null, 'Asueto laborado')}</td><td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraDiurna', null, 'Extra asueto diurna')}</td><td>${inputAjusteMasivoRapido(id, 'hAsuetoExtraNocturna', null, 'Extra asueto nocturna')}</td></tr>`;
   }).join('');
@@ -1865,7 +1895,7 @@ function guardarRegistroPlanilla() {
 }
 function datosPlanillaMasivaEmpleado(emp) {
   const { inicio, fin } = semanaMasivaActual();
-  const ajuste = ajustesPlanillaMasiva[emp.id] || { extraDias: extraDiasVacio(), extraNocturnasDias: extraDiasVacio(), hAsueto: 0, hDomingo: 0, hAsuetoExtraDiurna: 0, hAsuetoExtraNocturna: 0, hPermiso: 0, diasSinPermiso: 0, diasIncapacidad: 0 };
+  const ajuste = ajustesPlanillaMasiva[emp.id] || ajusteMasivoVacio();
   const extraDias = normalizarExtraDias(ajuste.extraDias);
   const extraNocturnasDias = normalizarExtraDias(ajuste.extraNocturnasDias);
   extraDias.domingo = num(ajuste.hDomingo);
@@ -1875,7 +1905,7 @@ function datosPlanillaMasivaEmpleado(emp) {
     empleado: emp,
     fechaInicio: inicio,
     fechaFin: fin,
-    hOrdinarias: proporcional ? proporcional.horasOrdinarias : num(document.getElementById('m-h-ordinarias').value),
+    hOrdinarias: num(ajuste.hOrdinarias) > 0 ? num(ajuste.hOrdinarias) : (proporcional ? proporcional.horasOrdinarias : num(document.getElementById('m-h-ordinarias').value)),
     extraDias,
     extraDia: resumenDiasExtra(extraDias),
     hExtra: totalHorasExtraLaboral(extraDias),
@@ -1903,7 +1933,7 @@ function fusionarDatosMasivosConPlanilla(datos, existente) {
   if (!existente) return datos;
   const ajuste = ajustesPlanillaMasiva[existente.empleadoId] || ajusteMasivoVacio();
   const tomar = (nuevo, anterior) => num(nuevo) > 0 ? num(nuevo) : num(anterior);
-  datos.hOrdinarias = num(existente.hOrdinarias);
+  datos.hOrdinarias = num(ajuste.hOrdinarias) > 0 ? num(ajuste.hOrdinarias) : num(existente.hOrdinarias);
   datos.hSeptimo = num(existente.hSeptimo);
   datos.extraDias = normalizarExtraDias(datos.extraDias);
   datos.extraNocturnasDias = normalizarExtraDias(datos.extraNocturnasDias);
