@@ -1362,7 +1362,7 @@ function coincidenciaDudosaAsistencia(nombre, empleado) {
   if (!empleado) return true;
   const clave = normalizarNombreAsistencia(nombre);
   const nombreEmpleado = normalizarNombreAsistencia(empleado.nombre);
-  return clave !== nombreEmpleado;
+  return !clave.includes(nombreEmpleado);
 }
 function horaImportadaValida(valor) {
   const horas = num(valor);
@@ -1441,9 +1441,89 @@ function empleadoDesdeFilaAsistencia(nombre, empleados) {
     return tokens.length >= 2 && tokens.every(token => nombreEmpleado.includes(token));
   }) || null;
 }
+function empleadoDesdeTextoOCR(texto, empleados) {
+  const clave = normalizarNombreAsistencia(texto);
+  const candidatos = empleados.map(emp => {
+    const tokens = normalizarNombreAsistencia(emp.nombre).split(' ').filter(token => token.length > 2);
+    const coincidencias = tokens.filter(token => clave.includes(token)).length;
+    return { emp, coincidencias, total: tokens.length };
+  }).filter(item => item.coincidencias >= 2)
+    .sort((a, b) => b.coincidencias - a.coincidencias || b.total - a.total);
+  return candidatos[0]?.emp || null;
+}
+function actualizarEstadoImportacion(texto) {
+  const estado = document.getElementById('m-importar-asistencia-estado');
+  if (estado) estado.textContent = texto;
+}
+async function importarHorasAsistenciaFoto(archivo) {
+  if (!window.Tesseract) {
+    toast('No se pudo cargar el lector de fotos. Revisa tu conexión e inténtalo de nuevo.', 6000);
+    return;
+  }
+  actualizarEstadoImportacion('Leyendo la foto... espera un momento.');
+  try {
+    const resultado = await window.Tesseract.recognize(archivo, 'spa', {
+      logger: mensaje => {
+        if (mensaje.status === 'recognizing text' && Number.isFinite(mensaje.progress)) {
+          actualizarEstadoImportacion(`Leyendo la foto... ${Math.round(mensaje.progress * 100)}%`);
+        }
+      }
+    });
+    const empleados = empleadosPlanillaMasiva();
+    const dias = ['viernes', 'sabado', 'domingo', 'lunes', 'martes', 'miercoles', 'jueves'];
+    let importados = 0;
+    let dudas = 0;
+    const noEncontrados = [];
+    const lineas = resultado.data.lines || [];
+
+    lineas.forEach(linea => {
+      const texto = String(linea.text || '').trim();
+      const empleado = empleadoDesdeTextoOCR(texto, empleados);
+      if (!empleado) return;
+      const palabras = (linea.words || []).map(palabra => String(palabra.text || '').trim());
+      const valores = palabras
+        .filter(palabra => /^\d{1,2}(?:[.:]\d{1,2})?$/.test(palabra))
+        .map(palabra => valorHoraImportada(palabra));
+      if (!valores.length) return;
+      const horas = valores.length > dias.length ? valores.slice(-dias.length) : valores;
+      const dudaFila = valores.length !== dias.length || coincidenciaDudosaAsistencia(texto, empleado);
+      const ajuste = ajustesPlanillaMasiva[empleado.id] || ajusteMasivoVacio();
+      horas.forEach((item, indice) => {
+        if (item.valor <= 0) return;
+        const dia = dias[indice];
+        const campo = dia === 'domingo' ? 'hDomingo' : 'extraDias';
+        if (dia === 'domingo') ajuste.hDomingo = item.valor;
+        else ajuste.extraDias[dia] = item.valor;
+        if (dudaFila || item.dudosa) {
+          asistenciaDudas[claveDudaAsistencia(empleado.id, campo, dia === 'domingo' ? null : dia)] = true;
+          dudas += 1;
+        }
+      });
+      ajustesPlanillaMasiva[empleado.id] = ajuste;
+      importados += 1;
+    });
+
+    guardarAjustesMasivosSemana(false);
+    renderPlanillaMasiva();
+    solicitarSincronizacion();
+    actualizarEstadoImportacion(`Foto leída: ${importados} empleados. ${dudas ? `${dudas} valores para revisar en amarillo.` : 'Sin dudas detectadas.'}`);
+    toast(`Leídos ${importados} empleados desde la foto.${dudas ? ` Revisa ${dudas} valores marcados en amarillo.` : ''}`, 7000);
+    if (!importados) toast('No se encontraron nombres y horas legibles. Toma la foto más cerca, derecha y con buena luz.', 7000);
+  } catch (error) {
+    console.error(error);
+    actualizarEstadoImportacion('No se pudo leer la foto.');
+    toast('No se pudo leer la foto. Toma otra con buena luz y sin inclinación.', 6000);
+  }
+}
 async function importarHorasAsistencia(archivo) {
   const entrada = document.getElementById('m-importar-asistencia');
   if (!archivo) return;
+  const esFoto = /\.(jpg|jpeg|png|webp)$/i.test(archivo.name || '') || String(archivo.type || '').startsWith('image/');
+  if (esFoto) {
+    try { await importarHorasAsistenciaFoto(archivo); }
+    finally { if (entrada) entrada.value = ''; }
+    return;
+  }
   if (!window.XLSX) {
     toast('No se pudo cargar el lector de Excel. Revisa tu conexión e inténtalo de nuevo.', 5000);
     if (entrada) entrada.value = '';
