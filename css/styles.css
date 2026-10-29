@@ -368,6 +368,36 @@
   .mass-quick-table thead th.mass-group-nocturna { background:#1D4ED8; }
   .mass-quick-table thead th.mass-group-asueto { background:#B45309; }
   .mass-quick-table thead th.mass-group-domingo { background:#0E7490; }
+  .mass-quick-table thead th.mass-day-head { color:#0F172A; border-left:1px solid rgba(15,23,42,.16); }
+  .mass-quick-table thead th.mass-day-viernes { background:#E2E8F0; }
+  .mass-quick-table thead th.mass-day-sabado { background:#CBD5E1; }
+  .mass-quick-table thead th.mass-day-domingo { background:#A5F3FC; }
+  .mass-quick-table thead th.mass-day-lunes { background:#BBF7D0; }
+  .mass-quick-table thead th.mass-day-martes { background:#FEF3C7; }
+  .mass-quick-table thead th.mass-day-miercoles { background:#DDD6FE; }
+  .mass-quick-table thead th.mass-day-jueves { background:#FED7AA; }
+  .mass-quick-table thead th.mass-day-viernes-night { background:#CBD5E1; }
+  .mass-quick-table thead th.mass-day-sabado-night { background:#B8C4D1; }
+  .mass-quick-table thead th.mass-day-domingo-night { background:#67E8F9; }
+  .mass-quick-table thead th.mass-day-lunes-night { background:#86EFAC; }
+  .mass-quick-table thead th.mass-day-martes-night { background:#FDE68A; }
+  .mass-quick-table thead th.mass-day-miercoles-night { background:#C4B5FD; }
+  .mass-quick-table thead th.mass-day-jueves-night { background:#FDBA74; }
+  .mass-quick-table td.mass-day-cell { border-left:1px solid rgba(15,23,42,.12); }
+  .mass-quick-table td.mass-day-viernes { background:#F8FAFC; }
+  .mass-quick-table td.mass-day-viernes-night { background:#F1F5F9; }
+  .mass-quick-table td.mass-day-sabado { background:#F8FAFC; }
+  .mass-quick-table td.mass-day-sabado-night { background:#F1F5F9; }
+  .mass-quick-table td.mass-day-domingo { background:#ECFEFF; }
+  .mass-quick-table td.mass-day-domingo-night { background:#CFFAFE; }
+  .mass-quick-table td.mass-day-lunes { background:#F0FDF4; }
+  .mass-quick-table td.mass-day-lunes-night { background:#DCFCE7; }
+  .mass-quick-table td.mass-day-martes { background:#FFFBEB; }
+  .mass-quick-table td.mass-day-martes-night { background:#FEF3C7; }
+  .mass-quick-table td.mass-day-miercoles { background:#F5F3FF; }
+  .mass-quick-table td.mass-day-miercoles-night { background:#EDE9FE; }
+  .mass-quick-table td.mass-day-jueves { background:#FFF7ED; }
+  .mass-quick-table td.mass-day-jueves-night { background:#FFEDD5; }
   .mass-name-cell { min-width: 210px; }
   .mass-name-cell .col-name { font-size: 11px; line-height: 1.15; }
   .mass-name-cell .col-sub { font-size: 10px; margin-top: 2px; }
@@ -388,6 +418,7 @@
     color: #166534;
     font-weight: 700;
   }
+  .mass-cell-input.mass-hours-filled { box-shadow: 0 0 0 2px currentColor; }
   input.visual-extra-diurna { background:#DCFCE7 !important; border-color:#16A34A !important; color:#166534 !important; }
   input.visual-extra-nocturna { background:#DBEAFE !important; border-color:#2563EB !important; color:#1D4ED8 !important; }
   input.visual-extra-asueto { background:#FEF3C7 !important; border-color:#F59E0B !important; color:#92400E !important; }

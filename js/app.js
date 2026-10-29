@@ -1331,13 +1331,14 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const valor = valorAjusteMasivoRapido(id, campo, dia);
   const diaArg = dia ? `'${dia}'` : 'null';
   const clase = claseAjusteMasivoRapido(campo, dia);
+  const claseHora = num(valor) > 0 ? ' mass-hours-filled' : '';
   const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
   const tipo = esDias ? 'number' : 'text';
   const ayuda = esDias ? '0' : '0, 0.25, 0.50 o 0.75';
   const validar = esDias ? '' : ' onchange="validarHoraCampo(this)"';
   const duda = tieneDudaAsistencia(id, campo, dia) ? ' mass-import-doubt' : '';
   const titulo = duda ? ' title="Revisar lectura de asistencia"' : '';
-  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref ${clase}${duda}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}${titulo}>`;
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref${claseHora} ${clase}${duda}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}${titulo}>`;
 }
 function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   const emp = empleadoPorId(id);
@@ -1722,8 +1723,8 @@ function renderPlanillaMasivaRapida() {
     const estadoHoras = resumenGuardado ? `Guardado: ${resumenGuardado}${planillaCreada ? ' · Planilla lista' : ''}` : '';
     const diasAsistencia = ['viernes', 'sabado', 'domingo', 'lunes', 'martes', 'miercoles', 'jueves'];
     const celdasDias = diasAsistencia.map(dia => dia === 'domingo'
-      ? `<td>${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
-      : `<td>${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)}</td><td>${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
+      ? `<td class="mass-day-cell mass-day-domingo">${inputAjusteMasivoRapido(id, 'hDomingo', null, 'Domingo laborado')}</td><td class="mass-day-cell mass-day-domingo-night">${inputAjusteMasivoRapido(id, 'extraNocturnasDias', 'domingo', 'Domingo nocturno')}</td>`
+      : `<td class="mass-day-cell mass-day-${dia}">${inputAjusteMasivoRapido(id, 'extraDias', dia, `${dia} extra`)}</td><td class="mass-day-cell mass-day-${dia}-night">${inputAjusteMasivoRapido(id, 'extraNocturnasDias', dia, `${dia} nocturna`)}</td>`
     ).join('');
     const dudaAsistencia = tieneDudaAsistencia(id, 'hOrdinarias', null);
     return `<tr><td class="mass-name-cell${dudaAsistencia ? ' mass-name-import-doubt' : ''}"><div class="col-name">${esc(emp.nombre)}</div><div class="col-sub">${esc(emp.departamento)} · ${esc(emp.cargo)}</div>${estadoHoras ? `<div class="mass-saved-status">${esc(estadoHoras)}</div>` : ''}${dudaAsistencia ? '<div class="mass-saved-status mass-import-status">Revisar horas ordinarias</div>' : ''}</td><td class="mass-order-cell">${num(emp.ordenAsistencia) > 0 ? esc(emp.ordenAsistencia) : '—'}</td>
