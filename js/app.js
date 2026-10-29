@@ -710,7 +710,8 @@ function ordenarPorAsistencia(empleados) {
   return [...empleados].sort(compararOrdenAsistencia);
 }
 function normalizarOrdenAsistencia(empleados = state?.empleados || []) {
-  const ordenados = empleados.slice().sort((a, b) => {
+  const activos = empleados.filter(empleado => empleado.estado !== 'inactivo');
+  const ordenados = activos.slice().sort((a, b) => {
     const ordenA = Math.max(0, Math.floor(num(a.ordenAsistencia)));
     const ordenB = Math.max(0, Math.floor(num(b.ordenAsistencia)));
     if (ordenA && ordenB && ordenA !== ordenB) return ordenA - ordenB;
@@ -718,6 +719,7 @@ function normalizarOrdenAsistencia(empleados = state?.empleados || []) {
     if (!ordenA && ordenB) return 1;
     return 0;
   });
+  empleados.filter(empleado => empleado.estado === 'inactivo').forEach(empleado => { empleado.ordenAsistencia = 0; });
   ordenados.forEach((empleado, indice) => { empleado.ordenAsistencia = indice + 1; });
   return empleados;
 }
@@ -3009,7 +3011,7 @@ function renderEmpleados() {
       <td><div class="col-name">${esc(e.nombre)}</div><div class="col-sub">DUI: ${esc(e.dui || '—')}</div></td>
       <td><div>${esc(e.telefono || '—')}</div><div class="col-sub">${esc(e.contactoNombre || '')}</div></td>
       <td>${esc(e.fechaIngreso || '—')}</td>
-      <td><span class="attendance-order-value">${num(e.ordenAsistencia) > 0 ? e.ordenAsistencia : '—'}</span></td>
+      <td><span class="attendance-order-value">${e.estado === 'activo' && num(e.ordenAsistencia) > 0 ? e.ordenAsistencia : '—'}</span></td>
       <td>${esc(e.cargo)}</td>
       <td>${esc(e.departamento)}</td>
       <td><div>${money(e.salarioHora)}</div>${num(e.ingresoFijo) > 0 ? `<div class="col-sub">+${money(e.ingresoFijo)} fijo</div>` : ''}</td>
