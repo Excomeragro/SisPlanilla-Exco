@@ -208,6 +208,7 @@
   .liquidacion-summary .liquidacion-total strong { color:#047857; font-size:28px; }
   .liquidacion-actions { flex-wrap:wrap; justify-content:flex-end; }
   .liquidacion-mode-btn.active { box-shadow:0 0 0 2px rgba(37,99,235,.18); }
+  .attendance-order-value { display:inline-flex; min-width:28px; justify-content:center; font-weight:700; color:var(--navy); }
   .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

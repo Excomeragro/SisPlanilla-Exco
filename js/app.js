@@ -143,6 +143,7 @@ function normalizarEstado(raw) {
   migrados.forEach(e => {
     if (!base.empleados.some(x => x.id === e.id || x.nombre.toLowerCase() === e.nombre.toLowerCase())) base.empleados.push(normalizarEmpleado(e));
   });
+  normalizarOrdenAsistencia(base.empleados);
   const idsFrecuentes = Array.isArray(raw.empleadosExtrasFrecuentes)
     ? raw.empleadosExtrasFrecuentes
     : empleadosExtrasFrecuentesPredeterminados(base.empleados);
@@ -708,6 +709,18 @@ function empleadoOrdenAsistenciaPlanilla(planilla) {
 function ordenarPorAsistencia(empleados) {
   return [...empleados].sort(compararOrdenAsistencia);
 }
+function normalizarOrdenAsistencia(empleados = state?.empleados || []) {
+  const ordenados = empleados.slice().sort((a, b) => {
+    const ordenA = Math.max(0, Math.floor(num(a.ordenAsistencia)));
+    const ordenB = Math.max(0, Math.floor(num(b.ordenAsistencia)));
+    if (ordenA && ordenB && ordenA !== ordenB) return ordenA - ordenB;
+    if (ordenA && !ordenB) return -1;
+    if (!ordenA && ordenB) return 1;
+    return 0;
+  });
+  ordenados.forEach((empleado, indice) => { empleado.ordenAsistencia = indice + 1; });
+  return empleados;
+}
 function empleadosActivos() { return ordenarPorNombre(state.empleados.filter(e => e.estado === 'activo')); }
 function empleadoPorId(id) { return state.empleados.find(e => e.id === id); }
 function textoNormalizado(s) { return String(s || '').trim().toLowerCase(); }
@@ -1072,9 +1085,7 @@ function cambiarOrdenAsistencia(activo) {
   guardarEstado(false);
 }
 function actualizarOrdenAsistencia(id, valor) {
-  const emp = empleadoPorId(id);
-  if (!emp) return;
-  emp.ordenAsistencia = Math.max(0, Math.floor(num(valor)));
+  normalizarOrdenAsistencia(state.empleados);
   guardarEstado(false);
 }
 function guardarPreferenciasExtrasFrecuentes() {
@@ -2047,6 +2058,7 @@ function eliminarEmpleado(id) {
   if (!confirm('¿Eliminar completamente a este empleado? Se borrarán sus planillas, boletas e historial.')) return;
   state.planillas.filter(p => p.empleadoId === id).forEach(p => eliminarRegistroPlanilla(p.id));
   state.empleados = state.empleados.filter(e => e.id !== id);
+  normalizarOrdenAsistencia(state.empleados);
   state.boletas = state.boletas.filter(b => b.empleadoId !== id);
   state.historialPagos = state.historialPagos.filter(p => p.empleadoId !== id);
   if (empleadoEditId === id) limpiarEmpleadoForm();
@@ -2165,7 +2177,14 @@ function guardarEmpleado() {
   const dup = state.empleados.find(e => e.id !== emp.id && e.nombre.toLowerCase() === emp.nombre.toLowerCase());
   if (dup) { toast('Ya existe un empleado con ese nombre.'); return; }
   const idx = state.empleados.findIndex(e => e.id === emp.id);
-  if (idx >= 0) state.empleados[idx] = emp; else state.empleados.push(emp);
+  if (idx >= 0) {
+    emp.ordenAsistencia = state.empleados[idx].ordenAsistencia;
+    state.empleados[idx] = emp;
+  } else {
+    emp.ordenAsistencia = state.empleados.length + 1;
+    state.empleados.push(emp);
+  }
+  normalizarOrdenAsistencia(state.empleados);
   empleadoEditId = null;
   limpiarEmpleadoForm();
   guardarEstado();
@@ -2990,7 +3009,7 @@ function renderEmpleados() {
       <td><div class="col-name">${esc(e.nombre)}</div><div class="col-sub">DUI: ${esc(e.dui || '—')}</div></td>
       <td><div>${esc(e.telefono || '—')}</div><div class="col-sub">${esc(e.contactoNombre || '')}</div></td>
       <td>${esc(e.fechaIngreso || '—')}</td>
-      <td><input class="attendance-order-input" type="number" min="1" step="1" value="${num(e.ordenAsistencia) > 0 ? e.ordenAsistencia : ''}" placeholder="—" onchange="actualizarOrdenAsistencia('${e.id}', this.value)"></td>
+      <td><span class="attendance-order-value">${num(e.ordenAsistencia) > 0 ? e.ordenAsistencia : '—'}</span></td>
       <td>${esc(e.cargo)}</td>
       <td>${esc(e.departamento)}</td>
       <td><div>${money(e.salarioHora)}</div>${num(e.ingresoFijo) > 0 ? `<div class="col-sub">+${money(e.ingresoFijo)} fijo</div>` : ''}</td>
