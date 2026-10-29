@@ -154,7 +154,7 @@
           <div class="section-mini-head">
             <div>
               <h3>Carga rapida de horas</h3>
-              <p>1. Escribe horas solo donde aplique o usa Subir asistencia. 2. Pulsa Guardar carga rápida. 3. Pulsa Crear planillas de todos. 4. Pulsa Crear boletas de la semana.</p>
+              <p>1. Escribe horas solo donde aplique o usa Subir asistencia. 2. Un valor negativo, por ejemplo -3, descuenta 3 horas de permiso sin goce en ese día. 3. Pulsa Guardar carga rápida. 4. Pulsa Crear planillas de todos. 5. Pulsa Crear boletas de la semana.</p>
             </div>
             <div class="mass-quick-controls"><label class="inline-check"><input type="checkbox" id="m-usar-orden-asistencia" onchange="cambiarOrdenAsistencia(this.checked)"> Usar orden de asistencia</label><button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('m-importar-asistencia').click()">Subir asistencia</button><input type="file" id="m-importar-asistencia" accept=".xlsx,.xls,.csv,.jpg,.jpeg,.png,.webp" multiple hidden onchange="importarHorasAsistencia(this.files)"><div class="form-group mass-quick-search"><label>Buscar</label><input type="search" id="m-rapida-buscar" placeholder="Nombre o DUI" oninput="filtrarPlanillaMasivaRapida()"></div></div>
           </div>

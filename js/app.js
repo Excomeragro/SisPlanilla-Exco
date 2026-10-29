@@ -1036,6 +1036,7 @@ function ajusteMasivoDesdePlanilla(p) {
 function combinarAjustesMasivos(preferido, respaldo) {
   const resultado = ajusteMasivoVacio();
   const tomar = (a, b) => num(a) > 0 ? num(a) : num(b);
+  resultado.permisosDias = { ...(respaldo?.permisosDias || {}), ...(preferido?.permisosDias || {}) };
   resultado.hOrdinarias = tomar(preferido?.hOrdinarias, respaldo?.hOrdinarias);
   EXTRA_DIAS.forEach(dia => {
     resultado.extraDias[dia.key] = tomar(preferido?.extraDias?.[dia.key], respaldo?.extraDias?.[dia.key]);
@@ -1045,7 +1046,8 @@ function combinarAjustesMasivos(preferido, respaldo) {
   resultado.hDomingo = tomar(preferido?.hDomingo, respaldo?.hDomingo);
   resultado.hAsuetoExtraDiurna = tomar(preferido?.hAsuetoExtraDiurna, respaldo?.hAsuetoExtraDiurna);
   resultado.hAsuetoExtraNocturna = tomar(preferido?.hAsuetoExtraNocturna, respaldo?.hAsuetoExtraNocturna);
-  resultado.hPermiso = tomar(preferido?.hPermiso, respaldo?.hPermiso);
+  const tienePermisosPorDia = Object.keys(preferido?.permisosDias || {}).length > 0;
+  resultado.hPermiso = tienePermisosPorDia ? num(preferido.hPermiso) : tomar(preferido?.hPermiso, respaldo?.hPermiso);
   resultado.diasSinPermiso = Math.max(0, Math.floor(tomar(preferido?.diasSinPermiso, respaldo?.diasSinPermiso)));
   resultado.diasIncapacidad = Math.max(0, Math.floor(tomar(preferido?.diasIncapacidad, respaldo?.diasIncapacidad)));
   return resultado;
@@ -1166,6 +1168,7 @@ function ajusteMasivoVacio() {
     hOrdinarias: 0,
     extraDias: extraDiasVacio(),
     extraNocturnasDias: extraDiasVacio(),
+    permisosDias: {},
     hAsueto: 0,
     hDomingo: 0,
     hAsuetoExtraDiurna: 0,
@@ -1187,8 +1190,15 @@ function tieneValoresAjusteMasivo(ajuste) {
     num(ajuste.hAsuetoExtraDiurna) > 0 ||
     num(ajuste.hAsuetoExtraNocturna) > 0 ||
     num(ajuste.hPermiso) > 0 ||
+    totalPermisosDias(ajuste) > 0 ||
     num(ajuste.diasSinPermiso) > 0 ||
     num(ajuste.diasIncapacidad) > 0;
+}
+function clavePermisoDia(campo, dia) {
+  return `${campo}:${dia || 'total'}`;
+}
+function totalPermisosDias(ajuste) {
+  return Object.values(ajuste?.permisosDias || {}).reduce((total, horas) => total + Math.max(0, num(horas)), 0);
 }
 function leerAjusteMasivoForm() {
   const extraDias = extraDiasVacio();
@@ -1292,13 +1302,16 @@ function limpiarAjusteMasivo() {
 function valorAjusteMasivoRapido(id, campo, dia) {
   const ajuste = ajustesPlanillaMasiva[id];
   if (!ajuste) return '';
+  const permiso = num(ajuste.permisosDias?.[clavePermisoDia(campo, dia)]);
+  if (permiso > 0) return -permiso;
   const valor = dia ? ajuste[campo]?.[dia] : ajuste[campo];
   return num(valor) > 0 ? num(valor) : '';
 }
 function clasesNombreMasivo(emp) {
   const ajuste = ajustesPlanillaMasiva[emp.id];
   const tieneExtra = tieneValoresAjusteMasivo(ajuste);
-  const tieneDescuento = num(ajuste?.hPermiso) > 0
+  const tieneDescuento = totalPermisosDias(ajuste) > 0
+    || num(ajuste?.hPermiso) > 0
     || num(ajuste?.diasSinPermiso) > 0
     || num(emp.descuentoFijo) > 0;
   return [
@@ -1317,7 +1330,8 @@ function resumenHorasAjusteMasivo(ajuste) {
   if (nocturnas > 0) partes.push(`N ${nocturnas.toFixed(2)}h`);
   if (num(ajuste.hAsueto) > 0 || num(ajuste.hAsuetoExtraDiurna) > 0 || num(ajuste.hAsuetoExtraNocturna) > 0) partes.push('Asueto');
   if (num(ajuste.hDomingo) > 0 || num(ajuste.extraNocturnasDias?.domingo) > 0) partes.push('Domingo');
-  if (num(ajuste.hPermiso) > 0 || num(ajuste.diasSinPermiso) > 0 || num(ajuste.diasIncapacidad) > 0) partes.push('Descuento');
+  const permisos = num(ajuste.hPermiso) + totalPermisosDias(ajuste);
+  if (permisos > 0 || num(ajuste.diasSinPermiso) > 0 || num(ajuste.diasIncapacidad) > 0) partes.push(`Permiso ${permisos.toFixed(2)}h`);
   return partes.join(' · ');
 }
 function actualizarColorNombreMasivo(id) {
@@ -1340,27 +1354,42 @@ function inputAjusteMasivoRapido(id, campo, dia, label, step = '0.5') {
   const valor = valorAjusteMasivoRapido(id, campo, dia);
   const diaArg = dia ? `'${dia}'` : 'null';
   const clase = claseAjusteMasivoRapido(campo, dia);
-  const claseHora = num(valor) > 0 ? ' mass-hours-filled' : '';
+  const claseHora = num(valor) < 0 ? ' mass-hours-permission' : num(valor) > 0 ? ' mass-hours-filled' : '';
+  const permitePermisoDia = !!dia || campo === 'hDomingo';
   const esDias = campo === 'diasSinPermiso' || campo === 'diasIncapacidad';
   const tipo = esDias ? 'number' : 'text';
-  const ayuda = esDias ? '0' : '0, 0.25, 0.50 o 0.75';
-  const validar = esDias ? '' : ' onchange="validarHoraCampo(this)"';
+  const ayuda = esDias ? '0' : permitePermisoDia ? '0 o -3 permiso' : '0, 0.25, 0.50 o 0.75';
+  const validar = esDias || permitePermisoDia ? '' : ' onchange="validarHoraCampo(this)"';
   const duda = tieneDudaAsistencia(id, campo, dia) ? ' mass-import-doubt' : '';
   const titulo = duda ? ' title="Revisar lectura de asistencia"' : '';
-  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref${claseHora} ${clase}${duda}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="0" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}${titulo}>`;
+  const minimo = permitePermisoDia ? '-44' : '0';
+  return `<label class="sr-only" for="mq-${campo}-${dia || 'total'}-${id}">${esc(label)}</label><input id="mq-${campo}-${dia || 'total'}-${id}" class="mass-cell-input zero-ref${claseHora} ${clase}${duda}" type="${tipo}" inputmode="decimal" step="${esc(step)}" min="${minimo}" placeholder="${ayuda}" value="${esc(valor)}" oninput="actualizarAjusteMasivoRapido('${id}', '${campo}', ${diaArg}, this.value)"${validar}${titulo}>`;
 }
 function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
   const emp = empleadoPorId(id);
   if (!emp) return;
   const ajuste = ajustesPlanillaMasiva[id] || ajusteMasivoVacio();
+  const horas = num(valor);
+  const permitePermisoDia = !!dia || campo === 'hDomingo';
+  const clavePermiso = clavePermisoDia(campo, dia);
   delete asistenciaDudas[claveDudaAsistencia(id, campo, dia)];
-  if (dia) ajuste[campo][dia] = num(valor);
-  else ajuste[campo] = campo === 'diasSinPermiso' || campo === 'diasIncapacidad' ? Math.max(0, Math.floor(num(valor))) : num(valor);
+  if (permitePermisoDia && horas < 0) {
+    ajuste.permisosDias[clavePermiso] = Math.abs(horas);
+    if (dia) ajuste[campo][dia] = 0;
+    else if (campo === 'hDomingo') ajuste.hDomingo = 0;
+  } else {
+    delete ajuste.permisosDias[clavePermiso];
+    if (dia) ajuste[campo][dia] = horas;
+    else ajuste[campo] = campo === 'diasSinPermiso' || campo === 'diasIncapacidad' ? Math.max(0, Math.floor(horas)) : horas;
+  }
   if (tieneValoresAjusteMasivo(ajuste)) ajustesPlanillaMasiva[id] = ajuste;
   else delete ajustesPlanillaMasiva[id];
   guardarAjustesMasivosSemana(false);
   const inputElement = document.getElementById('mq-' + campo + '-' + (dia || 'total') + '-' + id);
-  if (inputElement) inputElement.classList.toggle('mass-hours-filled', num(valor) > 0);
+  if (inputElement) {
+    inputElement.classList.toggle('mass-hours-filled', horas > 0);
+    inputElement.classList.toggle('mass-hours-permission', horas < 0);
+  }
   actualizarColorNombreMasivo(id);
   actualizarContadorPlanillaMasiva();
   renderResumenAjustesMasivos();
@@ -1368,8 +1397,9 @@ function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
 function guardarCargaRapida() {
   guardarAjustesMasivosSemana(false);
   programarGuardadoSupabase();
+  const actualizadas = aplicarAjustesMasivosAPlanillasExistentes();
   renderPlanillaMasivaRapida();
-  toast('Horas guardadas');
+  toast(actualizadas ? `Horas guardadas y aplicadas a ${actualizadas} planilla${actualizadas === 1 ? '' : 's'}.` : 'Horas guardadas. Crea las planillas de la semana para aplicarlas.');
 }
 function normalizarNombreAsistencia(nombre) {
   return String(nombre || '')
@@ -1708,7 +1738,7 @@ function renderResumenAjustesMasivos() {
   }
   tbody.innerHTML = ajustes.map(([id, ajuste]) => {
     const emp = empleadoPorId(id);
-    return `<tr class="mass-selected-row"><td><div class="col-name">${esc(emp.nombre)} <span class="badge badge-green">Ajuste</span></div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${num(ajuste.hPermiso).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} f / ${num(ajuste.diasIncapacidad).toFixed(0)} i</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
+    return `<tr class="mass-selected-row"><td><div class="col-name">${esc(emp.nombre)} <span class="badge badge-green">Ajuste</span></div><div class="col-sub">${esc(emp.departamento)}</div></td><td>${num(totalHorasExtraLaboral(ajuste.extraDias)).toFixed(2)}</td><td>${num(totalHorasExtraLaboral(ajuste.extraNocturnasDias)).toFixed(2)}</td><td>${num(ajuste.hAsueto).toFixed(2)}</td><td>${num(ajuste.hAsuetoExtraDiurna).toFixed(2)} / ${num(ajuste.hAsuetoExtraNocturna).toFixed(2)}</td><td>${num(ajuste.hDomingo).toFixed(2)} / ${num(ajuste.extraNocturnasDias?.domingo).toFixed(2)}</td><td>${(num(ajuste.hPermiso) + totalPermisosDias(ajuste)).toFixed(2)} h / ${num(ajuste.diasSinPermiso).toFixed(0)} f / ${num(ajuste.diasIncapacidad).toFixed(0)} i</td><td class="actions-cell"><button class="btn btn-amber btn-sm" onclick="editarAjusteMasivo('${id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="eliminarAjusteMasivo('${id}')">Quitar</button></td></tr>`;
   }).join('');
 }
 function renderPlanillaMasivaRapida() {
@@ -1947,7 +1977,7 @@ function datosPlanillaMasivaEmpleado(emp) {
     hAsueto: num(ajuste.hAsueto),
     hAsuetoExtraDiurna: num(ajuste.hAsuetoExtraDiurna),
     hAsuetoExtraNocturna: num(ajuste.hAsuetoExtraNocturna),
-    hPermiso: num(ajuste.hPermiso),
+    hPermiso: num(ajuste.hPermiso) + totalPermisosDias(ajuste),
     diasSinPermiso: Math.max(0, Math.floor(num(ajuste.diasSinPermiso))),
     diasIncapacidad: Math.max(0, Math.floor(num(ajuste.diasIncapacidad))),
     otrosIngresos: num(emp.ingresoFijo),
@@ -1993,6 +2023,21 @@ function fusionarDatosMasivosConPlanilla(datos, existente) {
   datos.hExtra = totalHorasExtraLaboral(datos.extraDias);
   datos.hExtraNocturna = totalHorasExtraLaboral(datos.extraNocturnasDias);
   return datos;
+}
+function aplicarAjustesMasivosAPlanillasExistentes() {
+  const { inicio, fin } = semanaMasivaActual();
+  let actualizadas = 0;
+  state.planillas.forEach((planilla, indice) => {
+    if (planilla.fechaInicio !== inicio || planilla.fechaFin !== fin) return;
+    const ajuste = ajustesPlanillaMasiva[planilla.empleadoId];
+    const empleado = empleadoPorId(planilla.empleadoId);
+    if (!empleado || !tieneValoresAjusteMasivo(ajuste)) return;
+    const datos = fusionarDatosMasivosConPlanilla(datosPlanillaMasivaEmpleado(empleado), planilla);
+    state.planillas[indice] = construirRegistroPlanilla(datos, planilla.id);
+    actualizadas += 1;
+  });
+  if (actualizadas) guardarEstado(false, false);
+  return actualizadas;
 }
 function crearPlanillasMasivas(mostrarAviso = true, preguntarSincronizacion = true) {
   const { inicio, fin } = semanaMasivaActual();
