@@ -24,6 +24,7 @@ let supabaseUsuario = null;
 let supabaseConectado = false;
 let aplicandoEstadoRemoto = false;
 let guardadoSupabaseTimer = null;
+let estadoSupabasePendiente = '';
 let ultimoEstadoEnviado = '';
 let conexionSupabaseId = 0;
 let asistenciaDudas = {};
@@ -365,15 +366,19 @@ function guardarEstadoLocalSinSincronizar() {
 
 function aplicarEstadoDesdeSupabase(datos) {
   if (!datos || typeof datos !== 'object') return;
+  const normalizado = normalizarEstado(datos);
+  const serializado = JSON.stringify(normalizado);
+  if (estadoSupabasePendiente && serializado !== estadoSupabasePendiente) return;
   aplicandoEstadoRemoto = true;
-  state = normalizarEstado(datos);
-  ultimoEstadoEnviado = JSON.stringify(state);
+  state = normalizado;
+  ultimoEstadoEnviado = serializado;
   guardarEstadoLocalSinSincronizar();
   aplicandoEstadoRemoto = false;
 }
 
 function programarGuardadoSupabase() {
   if (!supabaseConectado || !supabaseUsuario || aplicandoEstadoRemoto) return;
+  estadoSupabasePendiente = JSON.stringify(state);
   clearTimeout(guardadoSupabaseTimer);
   guardadoSupabaseTimer = setTimeout(guardarEstadoEnSupabase, 600);
 }
@@ -389,10 +394,14 @@ function solicitarSincronizacion() {
 async function guardarEstadoEnSupabase() {
   if (!supabaseConectado || !supabaseUsuario) return false;
   const adapter = window.SisPlanillaSupabaseAdapter;
+  const serializado = estadoSupabasePendiente || JSON.stringify(state);
+  let datosGuardar;
+  try { datosGuardar = JSON.parse(serializado); } catch(e) { datosGuardar = state; }
   try {
     actualizarEstadoSupabaseUI('Sincronizando...', 'blue');
-    ultimoEstadoEnviado = JSON.stringify(state);
-    await adapter.saveAll(state);
+    ultimoEstadoEnviado = serializado;
+    await adapter.saveAll(datosGuardar);
+    estadoSupabasePendiente = '';
     actualizarEstadoSupabaseUI('En línea', 'green');
     return true;
   } catch (error) {
@@ -1358,6 +1367,7 @@ function actualizarAjusteMasivoRapido(id, campo, dia, valor) {
 }
 function guardarCargaRapida() {
   guardarAjustesMasivosSemana(false);
+  programarGuardadoSupabase();
   renderPlanillaMasivaRapida();
   toast('Horas guardadas');
 }
@@ -1987,6 +1997,8 @@ function fusionarDatosMasivosConPlanilla(datos, existente) {
 function crearPlanillasMasivas(mostrarAviso = true, preguntarSincronizacion = true) {
   const { inicio, fin } = semanaMasivaActual();
   if (!inicio || !fin) { toast('Selecciona la semana.'); return; }
+  // Asegura que la carga rápida más reciente quede persistida antes de generar las planillas.
+  guardarAjustesMasivosSemana(false);
   const empleados = empleadosPlanillaMasiva();
   if (!empleados.length) { toast('No hay empleados disponibles.'); return; }
   empleados.forEach(emp => {
