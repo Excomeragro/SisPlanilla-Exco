@@ -4,6 +4,49 @@ const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
 const ROSMERY_SUSPENSION_MIGRATION_KEY = STORAGE_KEY + '_rosmery_suspension_2027_02_01';
+const ATTENDANCE_ORDER_MIGRATION_KEY = STORAGE_KEY + '_attendance_order_photos_2026_10_30';
+const ATTENDANCE_ORDER_FROM_PHOTOS = [
+  'FLORES CACERES, HECTOR DANIEL',
+  'PACHECO CEA, JOSE ERNESTO',
+  'ESCALANTE GUERRERO, JOSE MARCIAL',
+  'CEA SALGUERO, REIMUNDO',
+  'CRUZ VALLE, MARIO ANTONIO',
+  'PEREZ BRENES, JULIO ARMANDO',
+  'MENDOZA, ISMAEL DE JESUS',
+  'MARTINEZ MARTINEZ, TOMAS ALEJANDRO',
+  'MARTINEZ, JOSE LUIS',
+  'GONZALEZ MARTINEZ, JOSE RICARDO',
+  'MUSON VALENCIA, SAMUEL HUMBERTO',
+  'MORALES GUZMAN, GUSTAVO ALEXANDER',
+  'ACUNA DE MORALEZ, NORMA LIZETH',
+  'VALLE CRISOSTO, KARLA DANIELA',
+  'SIGUENZA MADRID, ANA BEATRIZ',
+  'ASCENCIO MEDINA, JENNIFER ESMERALDA',
+  'PALACIOS AREVALO, ESTELA DEL CARMEN',
+  'PALACIOS AREVALO, JUAN ALBERTO',
+  'ULLOA MENDEZ, JOSE ANGEL',
+  'CARIAS CASTRO, BLANCA LIDIA',
+  'ARAGON SANDOVAL, SONIA RUTH',
+  'MANCIA AVILES, GLADIS VIRGINIA',
+  'GALINDO NUÑEZ, NORMA DANIELA',
+  'GONZALEZ ALARCON, JERSON YONATAN',
+  'GUDIEL, ROBERTO ERNESTO',
+  'MORENO MEDINA, YANIRA DEL CARMEN',
+  'AGUILAR, BELINDA DEL CARMEN',
+  'ARCIA DE RAMIREZ, JACQUELINE LISSETTE',
+  'FLORES GALEANO, MARIA JULIA',
+  'ESTRADA DELGADO, NATHALY ELIZABETH',
+  'MARTINEZ DE OSORIO, JOSELINE DEL ROCIO',
+  'TADEO GALEANO, STEPHANIE SARAI',
+  'ESCOBAR ALFARO, JORGE ULISES',
+  'MORENO PEÑA, CARMEN',
+  'MUSON MORENO, JENNIFER MARISOL',
+  'GALEANO VDA DE TADEO, MARINA CARMEN',
+  'CHAVEZ, RODIL',
+  'ERIKA JEANMILLETTE DUEÑAS MANCIA',
+  'SULMA YANETH HIDALGO MARTIR',
+  'MOISES ULISES MERLOS MORENO'
+];
 const PAYROLL_CALC_VERSION = 8;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
@@ -16,6 +59,7 @@ const EXTRA_DIAS = [
   { key: 'domingo', label: 'Descanso laborado' }
 ];
 let state = cargarEstado();
+aplicarOrdenAsistenciaFotos();
 aplicarSuspensionRosmery();
 let aproximarPagos = !!state.aproximarPagos;
 let boletasMostradas = [];
@@ -30,6 +74,31 @@ let estadoSupabasePendiente = '';
 let ultimoEstadoEnviado = '';
 let conexionSupabaseId = 0;
 let asistenciaDudas = {};
+
+function claveNombreOrdenAsistencia(nombre) {
+  return String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function aplicarOrdenAsistenciaFotos() {
+  try {
+    if (localStorage.getItem(ATTENDANCE_ORDER_MIGRATION_KEY) === '1') return;
+    const porNombre = new Map(state.empleados.map(e => [claveNombreOrdenAsistencia(e.nombre), e]));
+    const usados = new Set();
+    let orden = 1;
+    ATTENDANCE_ORDER_FROM_PHOTOS.forEach(nombre => {
+      const empleado = porNombre.get(claveNombreOrdenAsistencia(nombre));
+      if (!empleado || usados.has(empleado.id)) return;
+      empleado.ordenAsistencia = orden++;
+      usados.add(empleado.id);
+    });
+    state.empleados
+      .filter(e => e.estado === 'activo' && !usados.has(e.id))
+      .sort((a, b) => Math.max(0, num(a.ordenAsistencia)) - Math.max(0, num(b.ordenAsistencia)))
+      .forEach(empleado => { empleado.ordenAsistencia = orden++; });
+    normalizarOrdenAsistencia(state.empleados);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(ATTENDANCE_ORDER_MIGRATION_KEY, '1');
+  } catch (e) {}
+}
 
 function aplicarSuspensionRosmery() {
   try {
