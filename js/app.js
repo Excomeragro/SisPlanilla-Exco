@@ -3,6 +3,7 @@ const INITIAL_DATA_VERSION = 'dui-2026-06-15';
 const INITIAL_DATA_KEY = STORAGE_KEY + '_initial_data_version';
 const EMPLOYEE_START_DATE = '2026-01-01';
 const EMPLOYEE_START_DATE_MIGRATION_KEY = STORAGE_KEY + '_employee_start_date_2026';
+const ROSMERY_SUSPENSION_MIGRATION_KEY = STORAGE_KEY + '_rosmery_suspension_2027_02_01';
 const PAYROLL_CALC_VERSION = 8;
 const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const EXTRA_DIAS = [
@@ -15,6 +16,7 @@ const EXTRA_DIAS = [
   { key: 'domingo', label: 'Descanso laborado' }
 ];
 let state = cargarEstado();
+aplicarSuspensionRosmery();
 let aproximarPagos = !!state.aproximarPagos;
 let boletasMostradas = [];
 let empleadoEditId = null;
@@ -28,6 +30,21 @@ let estadoSupabasePendiente = '';
 let ultimoEstadoEnviado = '';
 let conexionSupabaseId = 0;
 let asistenciaDudas = {};
+
+function aplicarSuspensionRosmery() {
+  try {
+    if (localStorage.getItem(ROSMERY_SUSPENSION_MIGRATION_KEY) === '1') return;
+    const rosmery = state.empleados.find(e => {
+      const nombre = String(e.nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return nombre.includes('rosmery') && nombre.includes('ulloa');
+    });
+    if (rosmery && !rosmery.noPlanillaHasta) {
+      rosmery.noPlanillaHasta = '2027-02-01';
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    localStorage.setItem(ROSMERY_SUSPENSION_MIGRATION_KEY, '1');
+  } catch (e) {}
+}
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function num(v) {
@@ -182,7 +199,8 @@ function normalizarEmpleado(e) {
     contactoTelefono: (e.contactoTelefono || '').trim(),
     contactoParentesco: (e.contactoParentesco || e.parentesco || '').trim(),
     estado: e.estado === 'inactivo' ? 'inactivo' : 'activo',
-    fechaSalida: e.fechaSalida || ''
+    fechaSalida: e.fechaSalida || '',
+    noPlanillaHasta: e.noPlanillaHasta || e.suspensionPlanillaHasta || ''
   };
 }
 function corregirHoraTreinta(value) {
@@ -742,15 +760,19 @@ function semanaPlanillaActual() {
 }
 function empleadoAplicaSemana(emp) {
   if (!emp) return false;
+  const { inicio, fin } = semanaPlanillaActual();
+  if (emp.noPlanillaHasta && fin && fechaLocal(fin) < fechaLocal(emp.noPlanillaHasta)) return false;
   if (emp.estado === 'activo') return true;
   if (!emp.fechaSalida) return false;
-  const { inicio } = semanaPlanillaActual();
   return fechaLocal(emp.fechaSalida) >= fechaLocal(inicio);
 }
 function empleadoDisponiblePlanilla(emp) {
   if (!empleadoAplicaSemana(emp)) return false;
   const { inicio, fin } = semanaPlanillaActual();
   return !state.planillas.some(p => p.empleadoId === emp.id && p.fechaInicio === inicio && p.fechaFin === fin && p.id !== planillaEditId);
+}
+function empleadoPuedeGenerarPeriodo(emp, inicio, fin) {
+  return !!emp && (!emp.noPlanillaHasta || !fin || fechaLocal(fin) >= fechaLocal(emp.noPlanillaHasta));
 }
 function empleadosDisponiblesPlanilla() {
   return ordenarPorNombre(state.empleados.filter(empleadoDisponiblePlanilla));
@@ -1085,8 +1107,9 @@ function guardarAjustesMasivosSemana(programar = true) {
 }
 function empleadoAplicaSemanaMasiva(emp) {
   if (!emp) return false;
+  const { inicio, fin } = semanaMasivaActual();
+  if (emp.noPlanillaHasta && fin && fechaLocal(fin) < fechaLocal(emp.noPlanillaHasta)) return false;
   if (emp.estado === 'activo') return true;
-  const { inicio } = semanaMasivaActual();
   return !!(emp.fechaSalida && inicio && fechaLocal(emp.fechaSalida) >= fechaLocal(inicio));
 }
 function empleadosPlanillaMasiva() {
@@ -2062,7 +2085,7 @@ function crearPlanillasMasivas(mostrarAviso = true, preguntarSincronizacion = tr
 }
 function crearBoletasSemanaMasiva() {
   const { inicio, fin } = semanaMasivaActual();
-  const planillas = state.planillas.filter(p => p.fechaInicio === inicio && p.fechaFin === fin);
+  const planillas = state.planillas.filter(p => p.fechaInicio === inicio && p.fechaFin === fin && empleadoPuedeGenerarPeriodo(empleadoPorId(p.empleadoId), inicio, fin));
   if (!planillas.length) { toast('Primero crea las planillas de la semana.'); return; }
   planillas.forEach(guardarBoletaAutomatica);
   document.getElementById('p-fecha-inicio').value = inicio;
@@ -2219,6 +2242,7 @@ function leerEmpleadoForm() {
     ingresoFijo: document.getElementById('e-ingreso-fijo').value,
     estado: document.getElementById('e-estado').value,
     fechaSalida: document.getElementById('e-fecha-salida').value,
+    noPlanillaHasta: document.getElementById('e-no-planilla-hasta').value,
     contactoNombre: document.getElementById('e-contacto-nombre').value,
     contactoTelefono: document.getElementById('e-contacto-telefono').value,
     contactoParentesco: document.getElementById('e-contacto-parentesco').value
@@ -2273,6 +2297,7 @@ function editarEmpleado(id) {
   document.getElementById('e-ingreso-fijo').value = num(e.ingresoFijo) > 0 ? e.ingresoFijo : '';
   document.getElementById('e-estado').value = e.estado;
   document.getElementById('e-fecha-salida').value = e.fechaSalida;
+  document.getElementById('e-no-planilla-hasta').value = e.noPlanillaHasta || '';
   document.getElementById('e-contacto-nombre').value = e.contactoNombre;
   document.getElementById('e-contacto-telefono').value = e.contactoTelefono;
   document.getElementById('e-contacto-parentesco').value = e.contactoParentesco;
@@ -2390,7 +2415,7 @@ function sincronizarBoletasConPlanillas() {
     return true;
   }).reverse();
   state.planillas.forEach(p => {
-    if (empleadoPorId(p.empleadoId)) guardarBoletaAutomatica(p);
+    if (empleadoPuedeGenerarPeriodo(empleadoPorId(p.empleadoId), p.fechaInicio, p.fechaFin)) guardarBoletaAutomatica(p);
   });
   const pagosVistos = new Set();
   const pagosContenidoVistos = new Set();
@@ -2408,6 +2433,10 @@ function generarBoletaDesdePlanilla(id) {
   if (!p) { toast('Selecciona una planilla.'); return; }
   const empActual = empleadoPorId(p.empleadoId);
   if (!empActual) { toast('No se encontró el empleado de esta planilla.'); return; }
+  if (!empleadoPuedeGenerarPeriodo(empActual, p.fechaInicio, p.fechaFin)) {
+    toast(`Esta empleada tiene suspendida la planilla hasta ${empActual.noPlanillaHasta}.`);
+    return;
+  }
   const boleta = guardarBoletaAutomatica(p);
   guardarEstado();
   mostrarBoleta(p, boleta);

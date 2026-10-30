@@ -284,6 +284,7 @@
               <div class="form-group"><label>Ingreso adicional fijo semanal neto ($)</label><input class="zero-ref" type="number" id="e-ingreso-fijo" step="0.01" min="0" value="" placeholder="0"></div>
               <div class="form-group"><label>Estado</label><select id="e-estado" onchange="toggleFechaSalida()"><option value="activo">🟢 Activo</option><option value="inactivo">🔴 Inactivo</option></select></div>
               <div class="form-group"><label>Primer día que ya no asistió</label><input type="date" id="e-fecha-salida"></div>
+              <div class="form-group span2"><label>No generar planilla ni boleta hasta</label><input type="date" id="e-no-planilla-hasta"><small class="field-help">La empleada seguirá activa, pero se excluirá de semanas que terminen antes de esta fecha.</small></div>
               <div class="form-divider">Contacto de emergencia</div>
               <div class="form-group"><label>Nombre del contacto</label><input type="text" id="e-contacto-nombre"></div>
               <div class="form-group"><label>Teléfono del contacto</label><input type="text" id="e-contacto-telefono"></div>
